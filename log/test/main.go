@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	log "github.com/civet148/gotools.git/log"
+	log "github.com/civet148/gotools/log"
 )
 
 /**
