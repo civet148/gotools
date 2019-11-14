@@ -390,7 +390,7 @@ func Struct(args ...interface{}) {
 		return
 	}
 	code := "<" + path.Base(file) + ":" + strconv.Itoa(line) + " " + GetFuncName(pc) + "()" + ">"
-	output := "[STRUCT]" + time.Now().Format("2006/01/02 15:04:05") + " " + code + "\n"
+	output := "[STRUCT] " + time.Now().Format("2006/01/02 15:04:05") + " " + code + "\n"
 	printToScreenAndFile(output)
 
 	for i := range args {
