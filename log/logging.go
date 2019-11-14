@@ -312,9 +312,9 @@ func Output(level int, fmtstr string, args ...interface{}) {
 
 	switch runtime.GOOS {
 	case "windows": //Windows终端不支持颜色显示
-		output = Name + " " + time.Now().Format("2006/01/02 15:04:05") + " " + code + " " + inf
+		output = Name + " " + time.Now().Format("2006-01-02 15:04:05") + " " + code + " " + inf
 	default: //Unix类终端支持颜色显示
-		output = "\033[1m" + colorName + " " + time.Now().Format("2006/01/02 15:04:05") + " " + code + "\033[0m " + inf
+		output = "\033[1m" + colorName + " " + time.Now().Format("2006-01-02 15:04:05") + " " + code + "\033[0m " + inf
 	}
 
 	//打印到终端屏幕
@@ -390,7 +390,7 @@ func Struct(args ...interface{}) {
 		return
 	}
 	code := "<" + path.Base(file) + ":" + strconv.Itoa(line) + " " + GetFuncName(pc) + "()" + ">"
-	output := "[STRUCT] " + time.Now().Format("2006/01/02 15:04:05") + " " + code + "\n"
+	output := "[STRUCT] " + time.Now().Format("2006-01-02 15:04:05") + " " + code + "\n"
 	printToScreenAndFile(output)
 
 	for i := range args {
