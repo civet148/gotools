@@ -62,19 +62,17 @@ func main() {
 	log.Open(strUrl)
 	defer log.Close()
 
-	for i := 0; i < 1; i++ {
-		log.Debug("This is debug message")
-		log.Info("This is info message")
-		log.Warn("This is warn message")
-		log.Error("This is error message")
-		log.Fatal("This is fatal message")
-		time.Sleep(5 * time.Millisecond)
+	log.Debug("This is debug message")
+	log.Info("This is info message")
+	log.Warn("This is warn message")
+	log.Error("This is error message")
+	log.Fatal("This is fatal message")
+	time.Sleep(5 * time.Millisecond)
 
-		st1 := testSt{MyInt: 1, MyFloat64: 2.00, MySubSt: testSubSt{SubInt: 1, SubStr: "MySubSt"}, MySubStPtr: &testSubSt{SubInt: 19, SubStr: "MySubStPtr"}}
-		st2 := &testSt{MyInt: 2, MyFloat64: 4.00}
-		log.Struct("Printing struct member info ->", st1, st2)
-		time.Sleep(5 * time.Second)
-	}
+	st1 := testSt{MyInt: 1, MyFloat64: 2.00, MySubSt: testSubSt{SubInt: 1, SubStr: "MySubSt"}, MySubStPtr: &testSubSt{SubInt: 19, SubStr: "MySubStPtr"}}
+	st2 := &testSt{MyInt: 2, MyFloat64: 4.00}
+	log.Json(st1, &st2)
+	log.Json("hello , I'm a string object", 123456, []int{100,200,300,400}, map[string]interface{}{"key1":109, "key2":"hello"})
 
 	log.Info("Program exit...")
 }
