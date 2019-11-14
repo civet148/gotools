@@ -72,7 +72,7 @@ func main() {
 
 		st1 := testSt{MyInt: 1, MyFloat64: 2.00, MySubSt: testSubSt{SubInt: 1, SubStr: "MySubSt"}, MySubStPtr: &testSubSt{SubInt: 19, SubStr: "MySubStPtr"}}
 		st2 := &testSt{MyInt: 2, MyFloat64: 4.00}
-		log.Struct("打印结构体", st1, st2)
+		log.Struct("Printing struct member info ->", st1, st2)
 		time.Sleep(5 * time.Second)
 	}
 
