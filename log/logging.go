@@ -421,7 +421,7 @@ func fmtStruct(deep int, typ reflect.Type, val reflect.Value) {
 	nCurDeep := deep
 
 	if !val.IsValid() {
-		strLog := fmt.Sprintf("%s(%s) = [<nil>]\n", fmtDeep(deep) /*,typ.Name()*/, typ.String())
+		strLog := fmt.Sprintf("%s(%s) = <nil>\n", fmtDeep(deep) /*,typ.Name()*/, typ.String())
 		printToScreenAndFile(strLog)
 		return
 	}
@@ -447,9 +447,16 @@ func fmtStruct(deep int, typ reflect.Type, val reflect.Value) {
 			} else {
 				var strLog string
 				if !valField.IsValid() || !valField.CanInterface() { //字段为空指针或非导出字
-					strLog = fmtDeep(deep) + fmt.Sprintf("%s = [<nil>] \n", typField.Name)
+					strLog = fmtDeep(deep) + fmt.Sprintf("%s = <nil> \n", typField.Name)
 				} else {
-					strLog = fmtDeep(deep) + fmt.Sprintf("%s = [%v] \n", typField.Name, valField.Interface())
+
+					switch typField.Type.Kind() {
+					case reflect.String:
+						strLog = fmtDeep(deep) + fmt.Sprintf("%s = '%v' \n", typField.Name, valField.Interface())
+					default:
+						strLog = fmtDeep(deep) + fmt.Sprintf("%s = %v \n", typField.Name, valField.Interface())
+					}
+					
 				}
 				printToScreenAndFile(strLog)
 			}
