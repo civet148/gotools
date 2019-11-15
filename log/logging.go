@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
@@ -371,7 +372,7 @@ func Null(fmtstr string, args ...interface{}) {
 
 }
 
-//打印结构体
+//打印结构体JSON
 func Json(args ...interface{}) {
 
 	if !console {
@@ -386,109 +387,118 @@ func Json(args ...interface{}) {
 	output := "[JSON] " + time.Now().Format("2006-01-02 15:04:05") + " " + code + "\n"
 	printToScreenAndFile(output)
 
-	for _, v := range args {
+	for i := range args {
+		arg := args[i]
+		typ := reflect.TypeOf(arg)
+		val := reflect.ValueOf(arg)
+		if typ.Kind() == reflect.Ptr { //如果是指针类型则先转为对象
 
-		data, _ := json.MarshalIndent(v, "", "\t")
+			typ = typ.Elem()
+			val = val.Elem()
+		}
+		data, _ := json.MarshalIndent(arg, "", "\t")
 		printToScreenAndFile(fmt.Sprintf("...........................................................\n"))
-		printToScreenAndFile(fmt.Sprintf("%v \n", string(data)))
+		printToScreenAndFile(fmt.Sprintf("(%v)%v \n", typ.Name(), string(data)))
 
 	}
 	printToScreenAndFile(fmt.Sprintf("...........................................................\n"))
 }
 
-////打印结构体
-//func Struct(args ...interface{}) {
-//
-//	if !console {
-//		return
-//	}
-//	pc, file, line, ok := runtime.Caller(1)
-//	if !ok {
-//		Error("runtime.Caller error")
-//		return
-//	}
-//	code := "<" + path.Base(file) + ":" + strconv.Itoa(line) + " " + GetFuncName(pc) + "()" + ">"
-//	output := "[STRUCT] " + time.Now().Format("2006-01-02 15:04:05") + " " + code + "\n"
-//	printToScreenAndFile(output)
-//
-//	for i := range args {
-//		arg := args[i]
-//		typ := reflect.TypeOf(arg)
-//		val := reflect.ValueOf(arg)
-//		if typ.Kind() == reflect.Ptr { //如果是指针类型则先转为对象
-//
-//			typ = typ.Elem()
-//			val = val.Elem()
-//		}
-//
-//		var nDeep int
-//		switch typ.Kind() {
-//
-//		case reflect.Struct:
-//			fmtStruct(nDeep, typ, val) //遍历结构体成员标签和值存到map[string]string中
-//		default:
-//			fmt.Printf("<%v> = %v \n", typ.Name(), val.Interface())
-//		}
-//	}
-//}
-//
-////将字段值存到其他类型的变量中
-//func fmtStruct(deep int, typ reflect.Type, val reflect.Value) {
-//
-//	kind := typ.Kind()
-//	nCurDeep := deep
-//
-//	if !val.IsValid() {
-//		strLog := fmt.Sprintf("%s(%s) = <nil>\n", fmtDeep(deep) /*,typ.Name()*/, typ.String())
-//		printToScreenAndFile(strLog)
-//		return
-//	}
-//
-//	strLog := fmt.Sprintf("%s(%s) {\n", fmtDeep(deep) /*,typ.Name()*/, typ.String())
-//	printToScreenAndFile(strLog)
-//
-//	if kind == reflect.Struct {
-//		deep++
-//		NumField := val.NumField()
-//		for i := 0; i < NumField; i++ {
-//			typField := typ.Field(i)
-//			valField := val.Field(i)
-//			if typField.Type.Kind() == reflect.Ptr { //如果是指针类型则先转为对象
-//
-//				typField.Type = typField.Type.Elem()
-//				valField = valField.Elem()
-//			}
-//
-//			if typField.Type.Kind() == reflect.Struct {
-//
-//				fmtStruct(deep, typField.Type, valField) //结构体需要递归调用
-//			} else {
-//				var strLog string
-//				if !valField.IsValid() || !valField.CanInterface() { //字段为空指针或非导出字
-//					strLog = fmtDeep(deep) + fmt.Sprintf("%s = <nil> \n", typField.Name)
-//				} else {
-//
-//					switch typField.Type.Kind() {
-//					case reflect.String:
-//						strLog = fmtDeep(deep) + fmt.Sprintf("%s = '%v' \n", typField.Name, valField.Interface())
-//					default:
-//						strLog = fmtDeep(deep) + fmt.Sprintf("%s = %v \n", typField.Name, valField.Interface())
-//					}
-//
-//				}
-//				printToScreenAndFile(strLog)
-//			}
-//		}
-//	}
-//	strLog = fmtDeep(nCurDeep) + "}\n"
-//	printToScreenAndFile(strLog)
-//	return
-//}
+//打印结构体
+func Struct(args ...interface{}) {
+
+	if !console {
+		return
+	}
+	pc, file, line, ok := runtime.Caller(1)
+	if !ok {
+		Error("runtime.Caller error")
+		return
+	}
+	code := "<" + path.Base(file) + ":" + strconv.Itoa(line) + " " + GetFuncName(pc) + "()" + ">"
+	output := "[STRUCT] " + time.Now().Format("2006-01-02 15:04:05") + " " + code + "\n"
+	printToScreenAndFile(output)
+
+	for i := range args {
+		arg := args[i]
+		typ := reflect.TypeOf(arg)
+		val := reflect.ValueOf(arg)
+		if typ.Kind() == reflect.Ptr { //如果是指针类型则先转为对象
+
+			typ = typ.Elem()
+			val = val.Elem()
+		}
+
+		var nDeep int
+		switch typ.Kind() {
+
+		case reflect.Struct:
+			fmtStruct(nDeep, typ, val) //遍历结构体成员标签和值存到map[string]string中
+		default:
+			fmt.Printf("<%v> = %v \n", typ.Name(), val.Interface())
+		}
+	}
+}
+
+//将字段值存到其他类型的变量中
+func fmtStruct(deep int, typ reflect.Type, val reflect.Value) {
+
+	kind := typ.Kind()
+	nCurDeep := deep
+
+	if !val.IsValid() {
+		strLog := fmt.Sprintf("%s(%s) = <nil>\n", fmtDeep(deep) /*,typ.Name()*/, typ.String())
+		printToScreenAndFile(strLog)
+		return
+	}
+
+	strLog := fmt.Sprintf("%s(%s) {\n", fmtDeep(deep) /*,typ.Name()*/, typ.String())
+	printToScreenAndFile(strLog)
+
+	if kind == reflect.Struct {
+		deep++
+		NumField := val.NumField()
+		for i := 0; i < NumField; i++ {
+			typField := typ.Field(i)
+			valField := val.Field(i)
+			if typField.Type.Kind() == reflect.Ptr { //如果是指针类型则先转为对象
+
+				typField.Type = typField.Type.Elem()
+				valField = valField.Elem()
+			}
+
+			if typField.Type.Kind() == reflect.Struct {
+
+				fmtStruct(deep, typField.Type, valField) //结构体需要递归调用
+			} else {
+				var strLog string
+				if !valField.IsValid() { //字段为空指针
+					strLog = fmtDeep(deep) + fmt.Sprintf("%s = <nil> \n", typField.Name)
+				} else if !valField.CanInterface() {//非导出字段
+					strLog = fmtDeep(deep) + fmt.Sprintf("%s = <unkown> \n", typField.Name)
+				} else {
+
+					switch typField.Type.Kind() {
+					case reflect.String:
+						strLog = fmtDeep(deep) + fmt.Sprintf("%s = '%v' \n", typField.Name, valField.Interface())
+					default:
+						strLog = fmtDeep(deep) + fmt.Sprintf("%s = %v \n", typField.Name, valField.Interface())
+					}
+
+				}
+				printToScreenAndFile(strLog)
+			}
+		}
+	}
+	strLog = fmtDeep(nCurDeep) + "}\n"
+	printToScreenAndFile(strLog)
+	return
+}
 
 func fmtDeep(nDeep int) (s string) {
 
 	for i := 0; i < nDeep; i++ {
-		s += fmt.Sprintf(" ... ")
+		s += fmt.Sprintf(" \t ")
 	}
 	return
 }
