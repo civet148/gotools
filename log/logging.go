@@ -312,7 +312,7 @@ func Output(level int, fmtstr string, args ...interface{}) {
 	case "windows": //Windows终端不支持颜色显示
 		output = time.Now().Format("2006-01-02 15:04:05") + " " + Name + " " + code + " " + inf
 	default: //Unix类终端支持颜色显示
-		output = "\033[1m" + time.Now().Format("2006-01-02 15:04:05") + " " + colorName + " " + code + "\033[0m " + inf
+		output = "\033[1m" + colorName + " " + time.Now().Format("2006-01-02 15:04:05") + " " + code + "\033[0m " + inf
 	}
 
 	//打印到终端屏幕
