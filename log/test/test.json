@@ -1,7 +1,7 @@
 {
       "log":{
             "file_path":"/tmp/test.log",
-            "file_level":"INFO",
+            "log_level":"INFO",
             "vol_size":"50",
             "email_level":"FATAL",
             "email_addr":"civet128@126.com",

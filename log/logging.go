@@ -15,19 +15,21 @@ import (
 	"time"
 )
 
-var LevelName = []string{"[DEBUG]", "[INFO]", "[WARN]", "[ERROR]", "[FATAL]"}
+var LevelName = []string{"[DEBUG]", "[INFO]", "[WARN]", "[ERROR]", "[FATAL]", "[JSON]", "[STRUCT]"}
 
 const (
-	LEVEL_DEBUG = iota
-	LEVEL_INFO
-	LEVEL_WARN
-	LEVEL_ERROR
-	LEVEL_FATAL
+	LEVEL_DEBUG  = 0
+	LEVEL_INFO  = 1
+	LEVEL_WARN  = 2
+	LEVEL_ERROR  = 3
+	LEVEL_FATAL = 4
+	LEVEL_JSON = 5
+	LEVEL_STRUCT = 6
 )
 
 type LogContent struct {
 	FilePath  string `json:"file_path"`
-	FileLevel string `json:"file_level"`
+	LogLevel string `json:"log_level"`
 	FileSize  int    `json:"file_size"`
 	Console   bool   `json:"console"`
 }
@@ -51,13 +53,9 @@ type LogUrl struct {
 var logfile *os.File   //日志文件对象
 var logger *log.Logger //日志输出对象
 var logurl LogUrl      //URL解析对象
-var urlscheme string   //协议名称(file/json)
-var filelevel int      //文件日志输出级别
+var loglevel int 	   //文件日志输出级别
 var filepath string    //文件日志路径
 var filesize int       //文件日志分割大小(MB)
-var emaillevel int     //邮件发送日志级别
-var emailaddr string   //邮件发送地址
-var emailtitle string  //邮件标题
 var console = true     //开启/关闭终端屏幕输出
 
 /**  打开日志
@@ -67,7 +65,7 @@ var console = true     //开启/关闭终端屏幕输出
 *	Open("test.log")
 *
 *	1.2. 设置文件日志输出级别和分块大小(单位：MB)
-*  	Open("file:///var/log/test.log?file_level=INFO&file_size=50")
+*  	Open("file:///var/log/test.log?log_level=INFO&file_size=50")
 *
 * 2. 通过指定json配置文件设置日志级别、日志文件及属性
 *
@@ -77,7 +75,7 @@ var console = true     //开启/关闭终端屏幕输出
 *   JSON范例：
 *   {
 *      "file_path":"/tmp/test.log",
-*      "file_level":"INFO",
+*      "log_level":"INFO",
 *      "file_size":"50",
 *      "email_level":"FATAL",
 *      "email_addr":"civet126@126.com",
@@ -87,12 +85,11 @@ var console = true     //开启/关闭终端屏幕输出
 //JSON配置文件例子
 var jsonExample = `{
       "file_path":"/tmp/test.log",
-      "file_level":"INFO",
+      "log_level":"INFO",
       "file_size":"50"
    }`
 
 func init() {
-	filelevel = 1 //INFO
 	filesize = 50 //MB
 }
 
@@ -170,8 +167,8 @@ func (lu *LogUrl) ParseUrl(strUrl string) (err error) {
 		switch k {
 		case "file_size":
 			filesize, _ = strconv.Atoi(v[0])
-		case "file_level":
-			filelevel = GetLevel(v[0])
+		case "log_level":
+			loglevel = GetLevel(v[0])
 		}
 	}
 
@@ -220,7 +217,7 @@ func (lu *LogUrl) ReadFromJson() (err error) {
 			}
 
 			filepath = logjson.LogCon.FilePath
-			filelevel = GetLevel(logjson.LogCon.FileLevel)
+			loglevel = GetLevel(logjson.LogCon.LogLevel)
 			filesize = logjson.LogCon.FileSize
 			console = logjson.LogCon.Console
 			if !console {
@@ -241,6 +238,12 @@ func GetFuncName(pc uintptr) (name string) {
 	ns := strings.Split(n, ".")
 	name = ns[len(ns)-1]
 	return
+}
+
+//设置日志级别(0=DEBUG 1=INFO 2=WARN 3=ERROR 4=FATAL)
+func SetLevel(nLevel int) {
+
+	loglevel = nLevel
 }
 
 //通过级别名称获取索引
@@ -272,7 +275,7 @@ func Output(level int, fmtstr string, args ...interface{}) {
 	var inf, code string
 	var colorName string
 
-	if !console {
+	if level < loglevel {
 		return
 	}
 
@@ -288,7 +291,8 @@ func Output(level int, fmtstr string, args ...interface{}) {
 		colorName = fmt.Sprintf("\033[31m%s", Name)
 	case LEVEL_FATAL:
 		colorName = fmt.Sprintf("\033[35m%s", Name)
-
+	default:
+		colorName = fmt.Sprintf("\033[34m%s", Name)
 	}
 
 	if fmtstr != "" {
@@ -306,13 +310,16 @@ func Output(level int, fmtstr string, args ...interface{}) {
 
 	switch runtime.GOOS {
 	case "windows": //Windows终端不支持颜色显示
-		output = Name + " " + time.Now().Format("2006-01-02 15:04:05") + " " + code + " " + inf
+		output = time.Now().Format("2006-01-02 15:04:05") + " " + Name + " " +  code + " " + inf
 	default: //Unix类终端支持颜色显示
-		output = "\033[1m" + colorName + " " + time.Now().Format("2006-01-02 15:04:05") + " " + code + "\033[0m " + inf
+		output = time.Now().Format("2006-01-02 15:04:05") + " " +"\033[1m" + colorName + " " + code + "\033[0m " + inf
 	}
 
 	//打印到终端屏幕
-	fmt.Println(output)
+	if console {
+		fmt.Println(output)
+	}
+
 	//输出到文件（如果Open函数传入了正确的文件路径）
 	if logger != nil {
 		fi, e := os.Stat(filepath)
@@ -331,9 +338,8 @@ func Output(level int, fmtstr string, args ...interface{}) {
 				}
 			}
 		}
-		if level >= filelevel {
-			logger.Println(Name + " " + code + " " + inf)
-		}
+
+		logger.Println(Name + " " + code + " " + inf)
 	}
 }
 
@@ -378,14 +384,6 @@ func Json(args ...interface{}) {
 	if !console {
 		return
 	}
-	pc, file, line, ok := runtime.Caller(1)
-	if !ok {
-		Error("runtime.Caller error")
-		return
-	}
-	code := "<" + path.Base(file) + ":" + strconv.Itoa(line) + " " + GetFuncName(pc) + "()" + ">"
-	output := "[JSON] " + time.Now().Format("2006-01-02 15:04:05") + " " + code + "\n"
-	printToScreenAndFile(output)
 
 	for i := range args {
 		arg := args[i]
@@ -397,11 +395,12 @@ func Json(args ...interface{}) {
 			val = val.Elem()
 		}
 		data, _ := json.MarshalIndent(arg, "", "\t")
-		printToScreenAndFile(fmt.Sprintf("...........................................................\n"))
-		printToScreenAndFile(fmt.Sprintf("(%v)%v \n", typ.Name(), string(data)))
-
+		strTypeName := ""
+		if typ.Name() == "" {
+			strTypeName = "slice/base type"
+		}
+		Output(LEVEL_JSON, fmt.Sprintf("(%v) %v ", strTypeName, string(data)))
 	}
-	printToScreenAndFile(fmt.Sprintf("...........................................................\n"))
 }
 
 //打印结构体
@@ -410,15 +409,8 @@ func Struct(args ...interface{}) {
 	if !console {
 		return
 	}
-	pc, file, line, ok := runtime.Caller(1)
-	if !ok {
-		Error("runtime.Caller error")
-		return
-	}
-	code := "<" + path.Base(file) + ":" + strconv.Itoa(line) + " " + GetFuncName(pc) + "()" + ">"
-	output := "[STRUCT] " + time.Now().Format("2006-01-02 15:04:05") + " " + code + "\n"
-	printToScreenAndFile(output)
 
+	var strLog string
 	for i := range args {
 		arg := args[i]
 		typ := reflect.TypeOf(arg)
@@ -433,27 +425,29 @@ func Struct(args ...interface{}) {
 		switch typ.Kind() {
 
 		case reflect.Struct:
-			fmtStruct(nDeep, typ, val) //遍历结构体成员标签和值存到map[string]string中
+			strLog = fmtStruct(nDeep, typ, val) //遍历结构体成员标签和值存到map[string]string中
 		default:
 			fmt.Printf("<%v> = %v \n", typ.Name(), val.Interface())
 		}
+
+		Output(LEVEL_STRUCT, strLog)
 	}
 }
 
 //将字段值存到其他类型的变量中
-func fmtStruct(deep int, typ reflect.Type, val reflect.Value) {
+func fmtStruct(deep int, typ reflect.Type, val reflect.Value) (strLog string){
 
 	kind := typ.Kind()
 	nCurDeep := deep
 
 	if !val.IsValid() {
-		strLog := fmt.Sprintf("%s(%s) = <nil>\n", fmtDeep(deep) /*,typ.Name()*/, typ.String())
-		printToScreenAndFile(strLog)
+		strLog = fmt.Sprintf("%s(%s) = <nil>\n", fmtDeep(deep) /*,typ.Name()*/, typ.String())
+		//printToScreenAndFile(strLog)
 		return
 	}
 
-	strLog := fmt.Sprintf("%s(%s) {\n", fmtDeep(deep) /*,typ.Name()*/, typ.String())
-	printToScreenAndFile(strLog)
+	strLog = fmt.Sprintf("%s(%s) {\n", fmtDeep(deep) /*,typ.Name()*/, typ.String())
+	//printToScreenAndFile(strLog)
 
 	if kind == reflect.Struct {
 		deep++
@@ -469,29 +463,29 @@ func fmtStruct(deep int, typ reflect.Type, val reflect.Value) {
 
 			if typField.Type.Kind() == reflect.Struct {
 
-				fmtStruct(deep, typField.Type, valField) //结构体需要递归调用
+				strLog += fmtStruct(deep, typField.Type, valField) //结构体需要递归调用
 			} else {
-				var strLog string
+				//var strLog string
 				if !valField.IsValid() { //字段为空指针
-					strLog = fmtDeep(deep) + fmt.Sprintf("%s = <nil> \n", typField.Name)
+					strLog += fmtDeep(deep) + fmt.Sprintf("%s = <nil> \n", typField.Name)
 				} else if !valField.CanInterface() {//非导出字段
-					strLog = fmtDeep(deep) + fmt.Sprintf("%s = <unkown> \n", typField.Name)
+					strLog += fmtDeep(deep) + fmt.Sprintf("%s = <unkown> \n", typField.Name)
 				} else {
 
 					switch typField.Type.Kind() {
 					case reflect.String:
-						strLog = fmtDeep(deep) + fmt.Sprintf("%s = '%v' \n", typField.Name, valField.Interface())
+						strLog += fmtDeep(deep) + fmt.Sprintf("%s = '%v' \n", typField.Name, valField.Interface())
 					default:
-						strLog = fmtDeep(deep) + fmt.Sprintf("%s = %v \n", typField.Name, valField.Interface())
+						strLog += fmtDeep(deep) + fmt.Sprintf("%s = %v \n", typField.Name, valField.Interface())
 					}
 
 				}
-				printToScreenAndFile(strLog)
+				//printToScreenAndFile(strLog)
 			}
 		}
 	}
-	strLog = fmtDeep(nCurDeep) + "}\n"
-	printToScreenAndFile(strLog)
+	strLog += fmtDeep(nCurDeep) + "}\n"
+	//printToScreenAndFile(strLog)
 	return
 }
 

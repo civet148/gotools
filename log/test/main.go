@@ -13,10 +13,10 @@ import (
 *	Open("test.log")
 *
 *	1.2. 设置文件日志输出级别和分块大小(单位：MB)
-*  	Open("file:///var/log/test.log?file_level=INFO&file_size=50")
+*  	Open("file:///var/log/test.log?log_level=INFO&file_size=50")
 *
 *	1.3. 设置文件日志输出级别和分块大小(单位：MB)及邮件通知级别、邮件地址、邮件标题
-*	Open("file:///var/log/test.log?file_level=INFO&file_size=50&email_level=FATAL&email=civet148@126.com&email_title=service-error-message")
+*	Open("file:///var/log/test.log?log_level=INFO&file_size=50&email_level=FATAL&email=civet148@126.com&email_title=service-error-message")
 *
 * 2. 	通过指定json配置文件设置日志级别、日志文件及属性
 *
@@ -26,7 +26,7 @@ import (
 *   test.json 范例
 *   {
 *      "file_path":"/tmp/test.log",
-*      "file_level":"INFO",
+*      "log_level":"INFO",
 *      "file_size":"50",
 *      "email_level":"FATAL",
 *      "email_addr":"civet126@126.com",
@@ -53,16 +53,18 @@ type testSt struct {
 
 func main() {
 
-	//strUrl := "test.log" //指定当前目录创建日志文件（Windows+linux通用）
+	strUrl := "test.log" //指定当前目录创建日志文件（Windows+linux通用）
 	//strUrl := "file://e:/test.log" //指定日志文件但不指定属性（Windows）
 	//strUrl := "file:///tmp/test.log" //指定日志文件但不指定属性(Linux)
 	//strUrl := "json:///tmp/test.json" //json文件名(Linux)
-	strUrl := "json://test.json" //json文件名(Windows)
-	//strUrl := "file:///var/log/test.log?file_level=INFO&file_size=50" //文件属性
-	//strUrl := "file://e:/test.log?file_level=WARN&file_size=50"
+	//strUrl := "json://test.json" //json文件名(Windows)
+	//strUrl := "file:///var/log/test.log?log_level=INFO&file_size=50" //文件属性
+	//strUrl := "file://e:/test.log?log_level=WARN&file_size=50"
+
 	log.Open(strUrl)
 	defer log.Close()
 
+	//log.SetLevel(log.LEVEL_INFO)
 	log.Debug("This is debug message")
 	log.Info("This is info message")
 	log.Warn("This is warn message")
