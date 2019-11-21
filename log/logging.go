@@ -19,19 +19,19 @@ var LevelName = []string{"[DEBUG]", "[INFO]", "[WARN]", "[ERROR]", "[FATAL]", "[
 
 const (
 	LEVEL_DEBUG  = 0
-	LEVEL_INFO  = 1
-	LEVEL_WARN  = 2
+	LEVEL_INFO   = 1
+	LEVEL_WARN   = 2
 	LEVEL_ERROR  = 3
-	LEVEL_FATAL = 4
-	LEVEL_JSON = 5
+	LEVEL_FATAL  = 4
+	LEVEL_JSON   = 5
 	LEVEL_STRUCT = 6
 )
 
 type LogContent struct {
-	FilePath  string `json:"file_path"`
+	FilePath string `json:"file_path"`
 	LogLevel string `json:"log_level"`
-	FileSize  int    `json:"file_size"`
-	Console   bool   `json:"console"`
+	FileSize int    `json:"file_size"`
+	Console  bool   `json:"console"`
 }
 
 type LogJson struct {
@@ -53,7 +53,7 @@ type LogUrl struct {
 var logfile *os.File   //日志文件对象
 var logger *log.Logger //日志输出对象
 var logurl LogUrl      //URL解析对象
-var loglevel int 	   //文件日志输出级别
+var loglevel int       //文件日志输出级别
 var filepath string    //文件日志路径
 var filesize int       //文件日志分割大小(MB)
 var console = true     //开启/关闭终端屏幕输出
@@ -310,9 +310,9 @@ func Output(level int, fmtstr string, args ...interface{}) {
 
 	switch runtime.GOOS {
 	case "windows": //Windows终端不支持颜色显示
-		output = time.Now().Format("2006-01-02 15:04:05") + " " + Name + " " +  code + " " + inf
+		output = time.Now().Format("2006-01-02 15:04:05") + " " + Name + " " + code + " " + inf
 	default: //Unix类终端支持颜色显示
-		output = time.Now().Format("2006-01-02 15:04:05") + " " +"\033[1m" + colorName + " " + code + "\033[0m " + inf
+		output = "\033[1m" + time.Now().Format("2006-01-02 15:04:05") + " " + colorName + " " + code + "\033[0m " + inf
 	}
 
 	//打印到终端屏幕
@@ -435,7 +435,7 @@ func Struct(args ...interface{}) {
 }
 
 //将字段值存到其他类型的变量中
-func fmtStruct(deep int, typ reflect.Type, val reflect.Value) (strLog string){
+func fmtStruct(deep int, typ reflect.Type, val reflect.Value) (strLog string) {
 
 	kind := typ.Kind()
 	nCurDeep := deep
@@ -468,7 +468,7 @@ func fmtStruct(deep int, typ reflect.Type, val reflect.Value) (strLog string){
 				//var strLog string
 				if !valField.IsValid() { //字段为空指针
 					strLog += fmtDeep(deep) + fmt.Sprintf("%s = <nil> \n", typField.Name)
-				} else if !valField.CanInterface() {//非导出字段
+				} else if !valField.CanInterface() { //非导出字段
 					strLog += fmtDeep(deep) + fmt.Sprintf("%s = <unkown> \n", typField.Name)
 				} else {
 
