@@ -282,17 +282,17 @@ func Output(level int, fmtstr string, args ...interface{}) {
 	Name := LevelName[level]
 	switch level {
 	case LEVEL_DEBUG:
-		colorName = fmt.Sprintf("\033[34m%s", Name)
+		colorName = fmt.Sprintf("\033[34m%v %s", time.Now().Format("2006-01-02 15:04:05"), Name)
 	case LEVEL_INFO:
-		colorName = fmt.Sprintf("\033[32m%s", Name)
+		colorName = fmt.Sprintf("\033[32m%v %s", time.Now().Format("2006-01-02 15:04:05"), Name)
 	case LEVEL_WARN:
-		colorName = fmt.Sprintf("\033[33m%s", Name)
+		colorName = fmt.Sprintf("\033[33m%v %s", time.Now().Format("2006-01-02 15:04:05"), Name)
 	case LEVEL_ERROR:
-		colorName = fmt.Sprintf("\033[31m%s", Name)
+		colorName = fmt.Sprintf("\033[31m%v %s", time.Now().Format("2006-01-02 15:04:05"), Name)
 	case LEVEL_FATAL:
-		colorName = fmt.Sprintf("\033[35m%s", Name)
+		colorName = fmt.Sprintf("\033[35m%v %s", time.Now().Format("2006-01-02 15:04:05"), Name)
 	default:
-		colorName = fmt.Sprintf("\033[34m%s", Name)
+		colorName = fmt.Sprintf("\033[34m%v %s", time.Now().Format("2006-01-02 15:04:05"), Name)
 	}
 
 	if fmtstr != "" {
@@ -312,7 +312,7 @@ func Output(level int, fmtstr string, args ...interface{}) {
 	case "windows": //Windows终端不支持颜色显示
 		output = time.Now().Format("2006-01-02 15:04:05") + " " + Name + " " + code + " " + inf
 	default: //Unix类终端支持颜色显示
-		output = "\033[1m" + colorName + " " + time.Now().Format("2006-01-02 15:04:05") + " " + code + "\033[0m " + inf
+		output = "\033[1m" + colorName + " " + code + "\033[0m " + inf
 	}
 
 	//打印到终端屏幕
