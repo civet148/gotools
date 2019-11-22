@@ -1,8 +1,8 @@
 package main
 
 import (
-	"game/Common/log"
-	"game/Common/timer"
+	"github.com/civet148/gotools/log"
+	"github.com/civet148/gotools/comm/timer"
 	"time"
 )
 
@@ -23,6 +23,7 @@ func main() {
 	var test = &MyTest{}
 
 	log.Info("set timer %v", TimerId_Test)
+	//测试定时器ID=1，时间间隔1秒，参数为int(10086)
 	timer.SetTimer(test, TimerId_Test, 1000, timer.RepeatForever, 10086)
 
 	time.Sleep(10*time.Second)
