@@ -6,14 +6,14 @@ import (
 	"time"
 )
 
-var TimerId_Test timer.TimerId = 1
+var TimerId_Test = 1
 
 type MyTest struct {
 
 }
 
 //定时任务执行接口
-func (this *MyTest) OnTimer(id timer.TimerId, param interface{}) {
+func (this *MyTest) OnTimer(id int, param interface{}) {
 
 	log.Debug("timer id %v param %v", id, param)
 }

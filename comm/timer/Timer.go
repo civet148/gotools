@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-type TimerId uint64 //定时任务ID类型
-
 var (
 	RepeatForever = -1 //重复执行
 	RepeatDone    = 0 //执行完毕
@@ -16,13 +14,13 @@ var (
 
 type ITimer interface {
 	//定时任务执行接口
-	OnTimer(id TimerId, param interface{})
+	OnTimer(id int, param interface{})
 }
 
 //定时任务内部对象
 type timerInner struct {
 	this   interface{} //需要执行定时任务的对象指针
-	id     TimerId     //定时任务ID
+	id     int     //定时任务ID
 	elapse int         //定时任务执行时间间隔(单位: 毫秒)
 	param  interface{} //参数
 	repeat int         //重复次数
@@ -90,7 +88,7 @@ func getNextTime(elapse int) (msec int64) {
 	return
 }
 
-func getTimerKey(this interface{}, id TimerId) string {
+func getTimerKey(this interface{}, id int) string {
 	return  fmt.Sprintf("%p->%v", this, id)
 }
 
@@ -100,7 +98,7 @@ func getTimerKey(this interface{}, id TimerId) string {
 //elapse 	执行间隔时间(最小单位：毫秒)
 //repeat 	重复次数(-1表示重复执行，大于0则表示执行具体次数)
 //param 	定时任务附带参数(尽量不要传递对象指针)
-func SetTimer(this interface{}, id TimerId, elapse int, repeat int, param interface{}) (bool) {
+func SetTimer(this interface{}, id int, elapse int, repeat int, param interface{}) (bool) {
 
 	if repeat <= 0 && repeat != RepeatForever {//仅-1允许
 
@@ -122,6 +120,6 @@ func SetTimer(this interface{}, id TimerId, elapse int, repeat int, param interf
 }
 
 //停止定时任务
-func KillTimer(this interface{}, id TimerId) {
+func KillTimer(this interface{}, id int) {
 	gMapTimer.Delete(getTimerKey(this, id))
 }
