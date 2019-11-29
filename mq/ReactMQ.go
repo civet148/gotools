@@ -20,6 +20,7 @@ const (
 	Adapter_KafkaMQ  Adapter = 3
 	Adapter_RocketMQ Adapter = 4
 	Adapter_MQTT     Adapter = 5
+	Adapter_ETCD     Adapter = 6
 )
 
 type FnConsumeCb func(strBody string) //消费者数据回调通知
@@ -55,6 +56,8 @@ func (a Adapter) String() string {
 		return "RocketMQ"
 	case Adapter_MQTT:
 		return "MQTT"
+	case Adapter_ETCD:
+		return "ETCD"
 	}
 	return UNSET
 }
