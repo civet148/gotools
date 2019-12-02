@@ -7,6 +7,8 @@ import (
 	_ "github.com/civet148/gotools/mq/mqtt"
 	_ "github.com/civet148/gotools/mq/rabbit"
 	_ "github.com/civet148/gotools/mq/redis"
+	_ "github.com/civet148/gotools/mq/etcd"
+	_ "github.com/civet148/gotools/mq/kafka"
 	"time"
 )
 
