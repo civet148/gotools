@@ -427,7 +427,7 @@ func Struct(args ...interface{}) {
 		case reflect.Struct:
 			strLog = fmtStruct(nDeep, typ, val) //遍历结构体成员标签和值存到map[string]string中
 		default:
-			fmt.Printf("<%v> = <%v> \n", typ.Name(), val.Interface())
+			fmt.Printf("<%v> = <%+v> \n", typ.Name(), val.Interface())
 		}
 
 		Output(LEVEL_STRUCT, strLog)
@@ -442,7 +442,7 @@ func fmtStruct(deep int, typ reflect.Type, val reflect.Value) (strLog string) {
 
 	if !val.IsValid() {
 		//strLog = fmt.Sprintf("%s(%s) = <nil>\n", fmtDeep(deep) /*,typ.Name()*/, typ.String())
-		strLog = fmt.Sprintf("%s(%s) = <%v>\n", fmtDeep(deep) /*,typ.Name()*/, typ.String(), val.String())
+		strLog = fmt.Sprintf("%s(%s) = <%+v>\n", fmtDeep(deep) /*,typ.Name()*/, typ.String(), val.String())
 		return
 	}
 
@@ -469,14 +469,14 @@ func fmtStruct(deep int, typ reflect.Type, val reflect.Value) (strLog string) {
 				if !valField.IsValid() { //字段为空指针
 					strLog += fmtDeep(deep) + fmt.Sprintf("%s = <nil> \n", typField.Name)
 				} else if !valField.CanInterface() { //非导出字段
-					strLog += fmtDeep(deep) + fmt.Sprintf("%s = <%v> \n", typField.Name, valField)
+					strLog += fmtDeep(deep) + fmt.Sprintf("%s = <%+v> \n", typField.Name, valField)
 				} else {
 
 					switch typField.Type.Kind() {
 					case reflect.String:
-						strLog += fmtDeep(deep) + fmt.Sprintf("%s = <%v> \n", typField.Name, valField.Interface())
+						strLog += fmtDeep(deep) + fmt.Sprintf("%s = <%+v> \n", typField.Name, valField.Interface())
 					default:
-						strLog += fmtDeep(deep) + fmt.Sprintf("%s = <%v> \n", typField.Name, valField.Interface())
+						strLog += fmtDeep(deep) + fmt.Sprintf("%s = <%+v> \n", typField.Name, valField.Interface())
 					}
 
 				}
