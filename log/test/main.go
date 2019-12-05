@@ -34,9 +34,14 @@ import (
 *   }
  */
 
+type SubSubSt struct {
+	Name string
+}
+
 type TestSubSt struct {
 	SubInt int
 	SubStr string
+	sst * SubSubSt
 }
 
 type testSt struct {
@@ -82,8 +87,11 @@ func main() {
 	log.Fatal("This is fatal message")
 	time.Sleep(5 * time.Millisecond)
 
+	var ip int32 = 10
 	st1 := testSt{abc:10086, flt32: 0.58, flt64: 0.96666, ui8: 25, ui32: 10032, i8: 44, i64: 100000000000019, str: "ni hao", slice: []string{"str1", "str2"},
-		MyInt: 1, MyFloat64: 2.00, MySubSt: TestSubSt{SubInt: 1, SubStr: "MySubSt"}, MySubStPtr: &TestSubSt{SubInt: 19, SubStr: "MySubStPtr"}}
+		MyInt: 1, MyFloat64: 2.00, ip: &ip, MySubSt: TestSubSt{SubInt: 1, SubStr: "MySubSt"},
+		MySubStPtr: &TestSubSt{SubInt: 19, SubStr: "MySubStPtr", sst: &SubSubSt{Name:"I'm subsubst object"}}}
+
 	st2 := &testSt{MyInt: 2, MyFloat64: 4.00, abc:9999}
 	log.Json(st1, st2)
 	log.Json("hello , I'm a string object", 123456, []int{100, 200, 300, 400}, map[string]interface{}{"key1": 109, "key2": "hello"})

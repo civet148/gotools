@@ -426,8 +426,10 @@ func Struct(args ...interface{}) {
 
 		case reflect.Struct:
 			strLog = fmtStruct(nDeep, typ, val) //遍历结构体成员标签和值存到map[string]string中
+		case reflect.String:
+			strLog += fmt.Sprintf("%v (string) = \"%+v\" \n", typ.Name(), val.Interface())
 		default:
-			fmt.Printf("<%v> = <%+v> \n", typ.Name(), val.Interface())
+			strLog += fmt.Sprintf("%v (%v) = <%+v> \n", typ.Name(), typ.Kind(), val.Interface())
 		}
 
 		Output(LEVEL_STRUCT, strLog)
@@ -435,7 +437,7 @@ func Struct(args ...interface{}) {
 }
 
 //将字段值存到其他类型的变量中
-func fmtStruct(deep int, typ reflect.Type, val reflect.Value, args...interface{}) (strLog string) {
+func fmtStruct(deep int, typ reflect.Type, val reflect.Value, args ...interface{}) (strLog string) {
 
 	kind := typ.Kind()
 	nCurDeep := deep
@@ -456,13 +458,12 @@ func fmtStruct(deep int, typ reflect.Type, val reflect.Value, args...interface{}
 		return
 	}
 
-	if bPointer {//this variant is a struct pointer
+	if bPointer { //this variant is a struct pointer
 		//strLog = fmt.Sprintf("%v%v (*%v) {\n", fmtDeep(deep) , typ.Kind().String(), typ.String())
-		strLog = fmt.Sprintf("%v%v (*%v) {\n", fmtDeep(deep) , strParentName, typ.String())
+		strLog = fmt.Sprintf("%v%v (*%v) {\n", fmtDeep(deep), strParentName, typ.String())
 	} else {
-		strLog = fmt.Sprintf("%v%v (%v) {\n", fmtDeep(deep) , strParentName, typ.String())
+		strLog = fmt.Sprintf("%v%v (%v) {\n", fmtDeep(deep), strParentName, typ.String())
 	}
-
 
 	if kind == reflect.Struct {
 		deep++
@@ -485,18 +486,17 @@ func fmtStruct(deep int, typ reflect.Type, val reflect.Value, args...interface{}
 			} else {
 				//var strLog string
 				if !valField.IsValid() { //字段为空指针
-					strLog += fmtDeep(deep) + fmt.Sprintf("%s = <nil> \n", typField.Name)
+					strLog += fmtDeep(deep) + fmt.Sprintf("%v (%v) = <nil> \n", typField.Name, typField.Type)
 				} else if !valField.CanInterface() { //非导出字段
-					strLog += fmtDeep(deep) + fmt.Sprintf("%s = <%+v> \n", typField.Name, valField)
+					strLog += fmtDeep(deep) + fmt.Sprintf("%v (%v) = <%+v> \n", typField.Name, typField.Type, valField)
 				} else {
 
 					switch typField.Type.Kind() {
 					case reflect.String:
-						strLog += fmtDeep(deep) + fmt.Sprintf("%s = <%+v> \n", typField.Name, valField.Interface())
+						strLog += fmtDeep(deep) + fmt.Sprintf("%v (%v) = \"%+v\" \n", typField.Name, typField.Type, valField.Interface())
 					default:
-						strLog += fmtDeep(deep) + fmt.Sprintf("%s = <%+v> \n", typField.Name, valField.Interface())
+						strLog += fmtDeep(deep) + fmt.Sprintf("%v (%v) = <%+v> \n", typField.Name, typField.Type, valField.Interface())
 					}
-
 				}
 			}
 		}
