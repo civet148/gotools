@@ -45,10 +45,19 @@ type testSt struct {
 	MyFloat64  float64
 	MyMap      map[string]string
 	MyMapPtr   *map[string]string
+	abc        int       //非导出字段(不处理会报panic错误)
+	str        string 	 //非导出字段
+	flt32      float32 	 //非导出字段
+	flt64      float64 	 //非导出字段
+	ui32       uint32 	 //非导出字段
+	ui8        uint8 	 //非导出字段
+	i8         int8      //非导出字段
+	i64        int64     //非导出字段
+	slice      []string  //非导出字段: 切片
+	arr2       [5]byte   //非导出字段: 数组
+	test       testSubSt //非导出字段: 结构体
 	MySubSt    testSubSt
 	MySubStPtr *testSubSt
-	abc        int //非导出字段(不处理会报panic错误)
-	test       testSubSt //非导出字段
 }
 
 func main() {
@@ -72,10 +81,11 @@ func main() {
 	log.Fatal("This is fatal message")
 	time.Sleep(5 * time.Millisecond)
 
-	st1 := testSt{MyInt: 1, MyFloat64: 2.00, MySubSt: testSubSt{SubInt: 1, SubStr: "MySubSt"}, MySubStPtr: &testSubSt{SubInt: 19, SubStr: "MySubStPtr"}}
-	st2 := &testSt{MyInt: 2, MyFloat64: 4.00}
+	st1 := testSt{abc:10086, flt32: 0.58, flt64: 0.96666, ui8: 25, ui32: 10032, i8: 44, i64: 100000000000019, str: "ni hao", slice: []string{"str1", "str2"},
+		MyInt: 1, MyFloat64: 2.00, MySubSt: testSubSt{SubInt: 1, SubStr: "MySubSt"}, MySubStPtr: &testSubSt{SubInt: 19, SubStr: "MySubStPtr"}}
+	st2 := &testSt{MyInt: 2, MyFloat64: 4.00, abc:9999}
 	log.Json(st1, st2)
-	log.Json("hello , I'm a string object", 123456, []int{100,200,300,400}, map[string]interface{}{"key1":109, "key2":"hello"})
+	log.Json("hello , I'm a string object", 123456, []int{100, 200, 300, 400}, map[string]interface{}{"key1": 109, "key2": "hello"})
 	log.Struct(st1, st2)
 	log.Info("Program exit...")
 }
