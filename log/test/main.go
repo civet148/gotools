@@ -34,7 +34,7 @@ import (
 *   }
  */
 
-type testSubSt struct {
+type TestSubSt struct {
 	SubInt int
 	SubStr string
 }
@@ -55,9 +55,10 @@ type testSt struct {
 	i64        int64     //非导出字段
 	slice      []string  //非导出字段: 切片
 	arr2       [5]byte   //非导出字段: 数组
-	test       testSubSt //非导出字段: 结构体
-	MySubSt    testSubSt
-	MySubStPtr *testSubSt
+	test       TestSubSt //非导出字段: 结构体
+	ip         *int32    //非导出字段
+	MySubSt    TestSubSt
+	MySubStPtr *TestSubSt
 }
 
 func main() {
@@ -82,7 +83,7 @@ func main() {
 	time.Sleep(5 * time.Millisecond)
 
 	st1 := testSt{abc:10086, flt32: 0.58, flt64: 0.96666, ui8: 25, ui32: 10032, i8: 44, i64: 100000000000019, str: "ni hao", slice: []string{"str1", "str2"},
-		MyInt: 1, MyFloat64: 2.00, MySubSt: testSubSt{SubInt: 1, SubStr: "MySubSt"}, MySubStPtr: &testSubSt{SubInt: 19, SubStr: "MySubStPtr"}}
+		MyInt: 1, MyFloat64: 2.00, MySubSt: TestSubSt{SubInt: 1, SubStr: "MySubSt"}, MySubStPtr: &TestSubSt{SubInt: 19, SubStr: "MySubStPtr"}}
 	st2 := &testSt{MyInt: 2, MyFloat64: 4.00, abc:9999}
 	log.Json(st1, st2)
 	log.Json("hello , I'm a string object", 123456, []int{100, 200, 300, 400}, map[string]interface{}{"key1": 109, "key2": "hello"})

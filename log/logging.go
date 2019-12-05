@@ -435,35 +435,50 @@ func Struct(args ...interface{}) {
 }
 
 //将字段值存到其他类型的变量中
-func fmtStruct(deep int, typ reflect.Type, val reflect.Value) (strLog string) {
+func fmtStruct(deep int, typ reflect.Type, val reflect.Value, args...interface{}) (strLog string) {
 
 	kind := typ.Kind()
 	nCurDeep := deep
 
+	var isPointer bool
+	if len(args) > 0 {
+		isPointer = args[0].(bool)
+	}
+
 	if !val.IsValid() {
-		//strLog = fmt.Sprintf("%s(%s) = <nil>\n", fmtDeep(deep) /*,typ.Name()*/, typ.String())
-		strLog = fmt.Sprintf("%s(%s) = <%+v>\n", fmtDeep(deep) /*,typ.Name()*/, typ.String(), val.String())
+		if isPointer { //this variant is a struct pointer
+			strLog = fmt.Sprintf("%v%v (*%v) = <nil>\n", fmtDeep(deep), typ.Kind().String(), typ.String())
+		} else {
+			strLog = fmt.Sprintf("%v%v (%v) = <nil>\n", fmtDeep(deep), typ.Kind().String(), typ.String())
+		}
 		return
 	}
 
-	strLog = fmt.Sprintf("%s(%s) {\n", fmtDeep(deep) /*,typ.Name()*/, typ.String())
-	//printToScreenAndFile(strLog)
+	if isPointer {//this variant is a struct pointer
+		strLog = fmt.Sprintf("%v%v (*%v) {\n", fmtDeep(deep) , typ.Kind().String(), typ.String())
+	} else {
+		strLog = fmt.Sprintf("%v%v (%v) {\n", fmtDeep(deep) , typ.Kind().String(), typ.String())
+	}
+
 
 	if kind == reflect.Struct {
 		deep++
 		NumField := val.NumField()
 		for i := 0; i < NumField; i++ {
+
+			var isPointer bool
 			typField := typ.Field(i)
 			valField := val.Field(i)
 			if typField.Type.Kind() == reflect.Ptr { //如果是指针类型则先转为对象
 
 				typField.Type = typField.Type.Elem()
 				valField = valField.Elem()
+				isPointer = true
 			}
 
 			if typField.Type.Kind() == reflect.Struct {
 
-				strLog += fmtStruct(deep, typField.Type, valField) //结构体需要递归调用
+				strLog += fmtStruct(deep, typField.Type, valField, isPointer) //结构体需要递归调用
 			} else {
 				//var strLog string
 				if !valField.IsValid() { //字段为空指针
@@ -480,12 +495,10 @@ func fmtStruct(deep int, typ reflect.Type, val reflect.Value) (strLog string) {
 					}
 
 				}
-				//printToScreenAndFile(strLog)
 			}
 		}
 	}
 	strLog += fmtDeep(nCurDeep) + "}\n"
-	//printToScreenAndFile(strLog)
 	return
 }
 
@@ -495,11 +508,6 @@ func fmtDeep(nDeep int) (s string) {
 		s += fmt.Sprintf("... ")
 	}
 	return
-}
-
-func printToScreenAndFile(strLog string) {
-	fmt.Print(strLog)
-	writeLogDriectly(strLog)
 }
 
 func writeLogDriectly(strLog string) {
