@@ -440,24 +440,27 @@ func fmtStruct(deep int, typ reflect.Type, val reflect.Value, args...interface{}
 	kind := typ.Kind()
 	nCurDeep := deep
 
-	var isPointer bool
+	var bPointer bool
+	var strParentName string
 	if len(args) > 0 {
-		isPointer = args[0].(bool)
+		bPointer = args[0].(bool)
+		strParentName = args[1].(string)
 	}
 
 	if !val.IsValid() {
-		if isPointer { //this variant is a struct pointer
-			strLog = fmt.Sprintf("%v%v (*%v) = <nil>\n", fmtDeep(deep), typ.Kind().String(), typ.String())
+		if bPointer { //this variant is a struct pointer
+			strLog = fmt.Sprintf("%v%v (*%v) = <nil>\n", fmtDeep(deep), strParentName, typ.String())
 		} else {
-			strLog = fmt.Sprintf("%v%v (%v) = <nil>\n", fmtDeep(deep), typ.Kind().String(), typ.String())
+			strLog = fmt.Sprintf("%v%v (%v) = <nil>\n", fmtDeep(deep), strParentName, typ.String())
 		}
 		return
 	}
 
-	if isPointer {//this variant is a struct pointer
-		strLog = fmt.Sprintf("%v%v (*%v) {\n", fmtDeep(deep) , typ.Kind().String(), typ.String())
+	if bPointer {//this variant is a struct pointer
+		//strLog = fmt.Sprintf("%v%v (*%v) {\n", fmtDeep(deep) , typ.Kind().String(), typ.String())
+		strLog = fmt.Sprintf("%v%v (*%v) {\n", fmtDeep(deep) , strParentName, typ.String())
 	} else {
-		strLog = fmt.Sprintf("%v%v (%v) {\n", fmtDeep(deep) , typ.Kind().String(), typ.String())
+		strLog = fmt.Sprintf("%v%v (%v) {\n", fmtDeep(deep) , strParentName, typ.String())
 	}
 
 
@@ -478,7 +481,7 @@ func fmtStruct(deep int, typ reflect.Type, val reflect.Value, args...interface{}
 
 			if typField.Type.Kind() == reflect.Struct {
 
-				strLog += fmtStruct(deep, typField.Type, valField, isPointer) //结构体需要递归调用
+				strLog += fmtStruct(deep, typField.Type, valField, isPointer, typField.Name) //结构体需要递归调用
 			} else {
 				//var strLog string
 				if !valField.IsValid() { //字段为空指针
