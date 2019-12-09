@@ -19,6 +19,7 @@ var (
 type Message struct {
 	Tags         []string //接收者的TAG标签（极光推送：tags和alias同时存在的情况下只发送给指定tag的接收者）
 	Alias        []string //接收者的别名
+	RegId        string   //极光注册ID
 	Title        string   //标题
 	Content      string   //内容
 	SoundIOS     string   //iOS声音设置 无 默认 自定义(空字符串、声音文件名、default)

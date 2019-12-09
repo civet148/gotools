@@ -16,7 +16,7 @@ import (
  */
 
 const (
-	JPUSH_PARAMS_COUNT = 2 //两个参数（appkey+secret+is_prod）
+	JPUSH_PARAMS_COUNT = 3 //两个参数（appkey+secret+is_prod）
 )
 
 var JPUSH_PUSHAPI_URL = "https://api.jpush.cn/v3/push"
@@ -24,8 +24,9 @@ var JPUSH_DEVICES_URL = "https://device.jpush.cn/v3/devices"
 var JPUSH_ALIASES_URL = "https://device.jpush.cn/v3/aliases"
 
 type JPush struct {
-	appkey string //极光appkey
-	secret string //极光secret
+	appkey  string //极光appkey
+	secret  string //极光secret
+	is_prod bool   //是否正式环境
 }
 
 func init() {
@@ -48,8 +49,9 @@ func New(args ...interface{}) push.IPush {
 	}
 
 	return &JPush{
-		appkey: args[0].(string),
-		secret: args[1].(string),
+		appkey:  args[0].(string),
+		secret:  args[1].(string),
+		is_prod: args[2].(bool),
 	}
 }
 
@@ -65,13 +67,13 @@ func (j *JPush) Register(strAliasName, strRegisterId, strMobile string) (err err
 	reg.Alias = strAliasName
 	httpCli := j.getHttpClientWithAuthorization()
 	strRegUrl := fmt.Sprintf("%v/%v", JPUSH_DEVICES_URL, strRegisterId)
-	log.Debug("register post to url [%v]\n", strRegUrl)
+	log.Debug("register post to url [%v]", strRegUrl)
 	data, _ := json.Marshal(reg)
 	log.Debug("register data [%v]", string(data))
 
 	resp, err := httpCli.SendUpstream(string(data), "POST", strRegUrl)
 	if err != nil {
-		log.Error("post to [%v] with register id [%v] mobile [%v] alias [%v] error [%v]\n", strRegUrl, strRegisterId, strMobile, strAliasName, err.Error())
+		log.Error("post to [%v] with register id [%v] mobile [%v] alias [%v] error [%v]", strRegUrl, strRegisterId, strMobile, strAliasName, err.Error())
 		return err
 	}
 
@@ -137,7 +139,7 @@ func (j *JPush) Push(platforms []string, msg *push.Message) (err error) {
 	content.Notification.IOS.Extras.Type = msg.Extra.Type //1|2的异或运算
 	content.Notification.IOS.Extras.Url = msg.Extra.Url
 	content.Options.TimeToLive = 60
-	content.Options.ApnsProduction = true //j.is_prod //判断IOS的生产还是测试环境
+	content.Options.ApnsProduction = j.is_prod //判断IOS的生产还是测试环境
 	//content.Notification.IOS.Badge = 1         //角标默认为空时+1
 
 	content.Audience.Tags = msg.Tags
