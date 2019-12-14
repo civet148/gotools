@@ -34,7 +34,7 @@ type IOS struct {
 	Alert  string `json:"alert"`
 	Extras Extras `json:"extras"`
 	Sound  string `json:"sound"`
-	//Badge  int    `json:"badge"`
+	Badge  string `json:"badge"`
 }
 
 //自定义字段，选填

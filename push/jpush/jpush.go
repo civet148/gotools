@@ -134,13 +134,13 @@ func (j *JPush) Push(platforms []string, msg *push.Message) (err error) {
 
 	//Notification for iOS
 	content.Notification.IOS.Alert = msg.Title    //必须要有值才能收到
-	content.Notification.IOS.Sound = msg.SoundIOS //默认有声音
 	content.Notification.IOS.Extras.Content = msg.Extra.Content
 	content.Notification.IOS.Extras.Type = msg.Extra.Type //1|2的异或运算
 	content.Notification.IOS.Extras.Url = msg.Extra.Url
 	content.Options.TimeToLive = 60
 	content.Options.ApnsProduction = j.is_prod //判断IOS的生产还是测试环境
-	//content.Notification.IOS.Badge = 1         //角标默认为空时+1
+	content.Notification.IOS.Sound = "default" /*msg.SoundIOS*/ //默认有声音
+	content.Notification.IOS.Badge = "+1"         //角标默+1
 
 	content.Audience.Tags = msg.Tags
 	content.Audience.Alias = msg.Alias
