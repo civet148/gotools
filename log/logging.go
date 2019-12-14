@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/mattn/go-colorable"
 )
 
 var LevelName = []string{"[DEBUG]", "[INFO]", "[WARN]", "[ERROR]", "[FATAL]", "[JSON]", "[STRUCT]"}
@@ -88,6 +89,8 @@ var jsonExample = `{
       "log_level":"INFO",
       "file_size":"50"
    }`
+
+var colorStdout = colorable.NewColorableStdout()
 
 func init() {
 	filesize = 50 //MB
@@ -309,15 +312,15 @@ func Output(level int, fmtstr string, args ...interface{}) {
 	var output string
 
 	switch runtime.GOOS {
-	case "windows": //Windows终端不支持颜色显示
-		output = time.Now().Format("2006-01-02 15:04:05") + " " + Name + " " + code + " " + inf
+	//case "windows": //Windows终端不支持颜色显示
+		//output = time.Now().Format("2006-01-02 15:04:05") + " " + Name + " " + code + " " + inf
 	default: //Unix类终端支持颜色显示
 		output = "\033[1m" + colorName + " " + code + "\033[0m " + inf
 	}
 
 	//打印到终端屏幕
 	if console {
-		fmt.Println(output)
+		fmt.Fprintln(colorStdout, output)
 	}
 
 	//输出到文件（如果Open函数传入了正确的文件路径）
