@@ -3,6 +3,7 @@ package log
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/mattn/go-colorable"
 	"io/ioutil"
 	"log"
 	"net/url"
@@ -13,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"github.com/mattn/go-colorable"
 )
 
 var LevelName = []string{"[DEBUG]", "[INFO]", "[WARN]", "[ERROR]", "[FATAL]", "[JSON]", "[STRUCT]"}
@@ -282,20 +282,21 @@ func Output(level int, fmtstr string, args ...interface{}) {
 		return
 	}
 
+	strTimeFmt := fmt.Sprintf("%v", time.Now().Format("2006-01-02 15:04:05.000000"))
 	Name := LevelName[level]
 	switch level {
 	case LEVEL_DEBUG:
-		colorName = fmt.Sprintf("\033[34m%v %s", time.Now().Format("2006-01-02 15:04:05"), Name)
+		colorName = fmt.Sprintf("\033[34m%v %s", strTimeFmt, Name)
 	case LEVEL_INFO:
-		colorName = fmt.Sprintf("\033[32m%v %s", time.Now().Format("2006-01-02 15:04:05"), Name)
+		colorName = fmt.Sprintf("\033[32m%v %s", strTimeFmt, Name)
 	case LEVEL_WARN:
-		colorName = fmt.Sprintf("\033[33m%v %s", time.Now().Format("2006-01-02 15:04:05"), Name)
+		colorName = fmt.Sprintf("\033[33m%v %s", strTimeFmt, Name)
 	case LEVEL_ERROR:
-		colorName = fmt.Sprintf("\033[31m%v %s", time.Now().Format("2006-01-02 15:04:05"), Name)
+		colorName = fmt.Sprintf("\033[31m%v %s", strTimeFmt, Name)
 	case LEVEL_FATAL:
-		colorName = fmt.Sprintf("\033[35m%v %s", time.Now().Format("2006-01-02 15:04:05"), Name)
+		colorName = fmt.Sprintf("\033[35m%v %s", strTimeFmt, Name)
 	default:
-		colorName = fmt.Sprintf("\033[34m%v %s", time.Now().Format("2006-01-02 15:04:05"), Name)
+		colorName = fmt.Sprintf("\033[34m%v %s", strTimeFmt, Name)
 	}
 
 	if fmtstr != "" {
@@ -313,7 +314,7 @@ func Output(level int, fmtstr string, args ...interface{}) {
 
 	switch runtime.GOOS {
 	//case "windows": //Windows终端不支持颜色显示
-		//output = time.Now().Format("2006-01-02 15:04:05") + " " + Name + " " + code + " " + inf
+	//output = time.Now().Format("2006-01-02 15:04:05") + " " + Name + " " + code + " " + inf
 	default: //Unix类终端支持颜色显示
 		output = "\033[1m" + colorName + " " + code + "\033[0m " + inf
 	}
