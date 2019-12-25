@@ -73,7 +73,7 @@ func (a *Apns) Push(msg *push.Message) (err error) {
 	}
 
 	Payload := payload.NewPayload().
-                       Alert(fmt.Sprintf("%v", msg.Alert)). //消息内容(alert of push)
+                       Alert(msg.Alert). //消息内容(alert of push)
                        Badge(1) //角标+1
 
 	m := push.StructToMap(msg.Extra)

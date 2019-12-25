@@ -131,7 +131,7 @@ func (j *JPush) Push(msg *push.Message) (err error) {
 	content.Notification.Android.Extras = msg.Extra //自定义内容
 
 	//Notification for iOS
-	content.Notification.IOS.Alert = msg.Title + ": " + msg.Alert //必须要有值才能收到
+	content.Notification.IOS.Alert = msg.Alert //必须要有值才能收到
 	content.Notification.IOS.Extras = msg.Extra                   //自定义内容
 	content.Options.TimeToLive = 60
 	content.Options.ApnsProduction = j.is_prod //判断IOS的生产还是测试环境
