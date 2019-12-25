@@ -1,6 +1,7 @@
 package push
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -23,7 +24,7 @@ type AudienceType int
 
 var (
 	AUDIENCE_TYPE_REGID_TOKEN AudienceType = 1 //按设备注册ID/token推送(device register id or device token)
-	AUDIENCE_TYPE_TAG   AudienceType = 2 //按标签推送(message group)
+	AUDIENCE_TYPE_TAG         AudienceType = 2 //按标签推送(message group)
 )
 
 type Message struct {
@@ -31,10 +32,10 @@ type Message struct {
 	Audiences    []string     //设备注册ID或标签或别名
 	Platforms    []string     //推送平台（可为空）
 	Title        string       //标题
-	Content      string       //内容
-	SoundIOS     string      //iOS声音设置 无 默认 自定义(空字符串、声音文件名、default)
-	SoundAndroid int         //声音设置(0 默认 1 播放声音文件)
-	Extra interface{} //扩展结构，用于点击推送消息自动跳转页面(选填)
+	Alert        string       //内容
+	SoundIOS     string       //iOS声音设置 无 默认 自定义(空字符串、声音文件名、default)
+	SoundAndroid int          //声音设置(0 默认 1 播放声音文件)
+	Extra        interface{}  //扩展结构，用于点击推送消息自动跳转页面(选填)
 }
 
 type IPush interface {
@@ -70,4 +71,12 @@ func GetAdapter(adapter AdapterType, args ...interface{}) (IPush, error) {
 	}
 
 	return ins(args...), nil
+}
+
+func StructToMap(v interface{}) (m map[string] interface{}) {
+
+	inrec, _ := json.Marshal(v)
+	_ = json.Unmarshal(inrec, &m)
+
+	return
 }

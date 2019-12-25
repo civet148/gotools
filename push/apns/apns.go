@@ -72,13 +72,15 @@ func (a *Apns) Push(msg *push.Message) (err error) {
 		Topic:       a.topic,
 	}
 
-	notification.Payload = payload.NewPayload().
-                                   Alert(fmt.Sprintf("%v", msg.Content)). //消息内容
-                                   Badge(1) //角标+1
+	Payload := payload.NewPayload().
+                       Alert(fmt.Sprintf("%v", msg.Alert)). //消息内容(alert of push)
+                       Badge(1) //角标+1
 
-		//
-		//Custom("type", msg.Type). //自定义字段
-		//Custom("chat_id", msg.ChatID) //自定义字段
+	m := push.StructToMap(msg.Extra)
+	for k, v := range m {
+		Payload.Custom(k, v) //自定义字段(custom key-value)
+	}
+	notification.Payload = Payload
 
 	var resp *apns2.Response
 	if resp, err = a.client.Push(notification); err != nil {

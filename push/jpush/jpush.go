@@ -122,29 +122,29 @@ func (j *JPush) Push(msg *push.Message) (err error) {
 	}
 
 	//Notification for android
-	content.Notification.Android.Title = msg.Title            //标题
-	content.Notification.Android.Alert = msg.Content          //内容
-	content.Notification.Android.BuilderId = 0 //设置安卓声音
+	content.Notification.Android.Title = msg.Title //标题
+	content.Notification.Android.Alert = msg.Alert //内容
+	content.Notification.Android.BuilderId = 0     //设置安卓声音
 	if content.Notification.Android.BuilderId == 0 {
 		content.Notification.Android.BuilderId = 2
 	}
 	content.Notification.Android.Extras = msg.Extra //自定义内容
 
 	//Notification for iOS
-	content.Notification.IOS.Alert = msg.Title + ": " + msg.Content    //必须要有值才能收到
-	content.Notification.IOS.Extras = msg.Extra  //自定义内容
+	content.Notification.IOS.Alert = msg.Title + ": " + msg.Alert //必须要有值才能收到
+	content.Notification.IOS.Extras = msg.Extra                   //自定义内容
 	content.Options.TimeToLive = 60
 	content.Options.ApnsProduction = j.is_prod //判断IOS的生产还是测试环境
 	content.Notification.IOS.Sound = "default" /*msg.SoundIOS*/ //默认有声音
-	content.Notification.IOS.Badge = "+1"         //角标默+1
+	content.Notification.IOS.Badge = "+1"      //角标默+1
 
 	switch msg.AudienceType {
 	case push.AUDIENCE_TYPE_REGID_TOKEN: //device token or register id
 		content.Audience.RegId = msg.Audiences
 	case push.AUDIENCE_TYPE_TAG: //message group
 		content.Audience.Tag = msg.Audiences
-	//case push.AUDIENCE_TYPE_ALIAS: //disabled alias of jpush
-	//	content.Audience.Alias = msg.Audiences
+		//case push.AUDIENCE_TYPE_ALIAS: //disabled alias of jpush
+		//	content.Audience.Alias = msg.Audiences
 	}
 
 	log.Struct(&content)

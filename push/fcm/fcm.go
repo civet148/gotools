@@ -270,7 +270,7 @@ func (f *Fcm) Push(msg *push.Message) (err error) {
 		DelayWhileIdle:  true,
 		Notification: Notification{
 			Title: msg.Title,
-			Body: msg.Content,
+			Body: msg.Alert,
 			//ClickAction: "com.bilibili.app.in.com.bilibili.push.FCM_MESSAGE", //点击触发事件，暂时不支持
 		},
 		//CollapseKey: strings.TrimFunc("t123456", func(r rune) bool {
