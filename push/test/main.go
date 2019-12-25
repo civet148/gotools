@@ -2,33 +2,57 @@ package main
 
 import (
 	"github.com/civet148/gotools/push"
+	_ "github.com/civet148/gotools/push/apns"
+	_ "github.com/civet148/gotools/push/fcm"
 	_ "github.com/civet148/gotools/push/jpush"
 )
 
-var strAlias string = "10000007"
-var strRegId string = "191e35f7e02aeaa0597"
-var strAppKey string = "2978da262aa372ed199901d2"
-var strSecret string = "1033636bfff8d246294fd1c8"
+
+
+
+type PushExtra struct {
+	Type   int32 `json:"type"`
+	ChatID int32 `json:"chat_id"`
+}
 
 func main() {
 
-	var isProdEnv = false //测试环境为false，正式环境为true
+	var strRegId string = "191e35f7e02aeaa0597"
+	var strAppKey string = "2978da262aa372ed199901d2"
+	var strSecret string = "1033636bfff8d246294fd1c8"
+	var isProdEnv = false //sandbox environment is false, production is true for jpush
+
+	msg := push.Message{
+		AudienceType: push.AUDIENCE_TYPE_REGID_TOKEN,
+		Audiences:    []string{strRegId},
+		Title:        "你有一条新消息",
+		Content:      "洞拐洞拐，我是电报后台，收到请回复+1",
+		Extra:        &PushExtra{Type: 1, ChatID: 10000},
+	}
+
 	jpush, _ := push.GetAdapter(push.AdapterType_JPush, strAppKey, strSecret, isProdEnv)
-	err := jpush.Register(strAlias, strRegId, "17788880000")
+	if jpush != nil {
+		jpush.Debug(true)
+		_ = jpush.Push(&msg)
+	}
 
-	if err == nil {
-		msg := push.Message{
-			//Tags:         nil,
-			Alias: []string{strAlias},
-			//RegId:		  strRegId,
-			Title:        "你有一条新消息",
-			Content:      "洞拐洞拐，我是电报后台，收到请回复+1",
-			SoundIOS:     "",
-			SoundAndroid: 0,
-			Extra:        push.Extras{Content: "洞拐洞拐，我是电报后台，收到请回复+2"},
-		}
 
-		_ = jpush.Push([]string{push.PLATFORM_ANDROID, push.PLATFORM_IOS}, &msg)
-		//_ = jpush.Unregister(strAlias)
+	//fake api key, access 'console.firebase.google.com' to get your api key
+	strApiKey := "AIzaSyBtMplqJkuTIDyIx_CM74MoPHbxHCBcY-o"
+	fcm, _ := push.GetAdapter(push.AdapterType_Fcm, strApiKey)
+
+	if fcm != nil {
+		fcm.Debug(true)
+		_ = fcm.Push(&msg)
+	}
+
+	var strAuthKeyFile="AuthKey_U4Q9F3Y9WH.p8" //APNs JWT token auth key file (.p8)
+	var strKeyID = "U4Q9F3Y9WH" //APNs key id
+	var strTeamID = "2965AR985S" //APNs team id
+	var strTopic = "com.chatol.thunderchat" //bundle id of your app
+	apns, _ := push.GetAdapter(push.AdapterTYpe_Apns, strAuthKeyFile, strKeyID, strTeamID, strTopic)
+	if apns != nil {
+		apns.Debug(true)
+		_ = apns.Push(&msg)
 	}
 }

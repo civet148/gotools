@@ -60,90 +60,92 @@ func New(args ...interface{}) push.IPush {
 //RegisterId 	App集成极光推送SDK后获得并由App客户端负责传递到服务器端
 //Mobile 		用户手机号
 //备注：			别名规则需根据实际情况定义好，确保一台设备一个账户唯一避免出现一台设备多个账户登录或一个账户多个设备登录造成消息推送失败
-func (j *JPush) Register(strAliasName, strRegisterId, strMobile string) (err error) {
-
-	reg := &Register{}
-	reg.Mobile = strMobile
-	reg.Alias = strAliasName
-	httpCli := j.getHttpClientWithAuthorization()
-	strRegUrl := fmt.Sprintf("%v/%v", JPUSH_DEVICES_URL, strRegisterId)
-	log.Debug("register post to url [%v]", strRegUrl)
-	data, _ := json.Marshal(reg)
-	log.Debug("register data [%v]", string(data))
-
-	resp, err := httpCli.SendUpstream(string(data), "POST", strRegUrl)
-	if err != nil {
-		log.Error("post to [%v] with register id [%v] mobile [%v] alias [%v] error [%v]", strRegUrl, strRegisterId, strMobile, strAliasName, err.Error())
-		return err
-	}
-
-	log.Debug("jpush response [%s]\n", string(resp))
-	if string(resp) != "" {
-		ret := IncorrectResp{}
-		err = json.Unmarshal(resp, &ret)
-		if err != nil {
-			return err
-		}
-		log.Error("jpush response incorrect code [%v] message [%v]", ret.Error.Code, ret.Error.Message)
-		return fmt.Errorf("%d %s", ret.Error.Code, ret.Error.Message)
-	}
-
-	return
-}
+//func (j *JPush) Register(strAliasName, strRegisterId, strMobile string) (err error) {
+//
+//	reg := &Register{}
+//	reg.Mobile = strMobile
+//	reg.Alias = strAliasName
+//	httpCli := j.getHttpClientWithAuthorization()
+//	strRegUrl := fmt.Sprintf("%v/%v", JPUSH_DEVICES_URL, strRegisterId)
+//	log.Debug("register post to url [%v]", strRegUrl)
+//	data, _ := json.Marshal(reg)
+//	log.Debug("register data [%v]", string(data))
+//
+//	resp, err := httpCli.SendUpstream(string(data), "POST", strRegUrl)
+//	if err != nil {
+//		log.Error("post to [%v] with register id [%v] mobile [%v] alias [%v] error [%v]", strRegUrl, strRegisterId, strMobile, strAliasName, err.Error())
+//		return err
+//	}
+//
+//	log.Debug("jpush response [%s]\n", string(resp))
+//	if string(resp) != "" {
+//		ret := IncorrectResp{}
+//		err = json.Unmarshal(resp, &ret)
+//		if err != nil {
+//			return err
+//		}
+//		log.Error("jpush response incorrect code [%v] message [%v]", ret.Error.Code, ret.Error.Message)
+//		return fmt.Errorf("%d %s", ret.Error.Code, ret.Error.Message)
+//	}
+//
+//	return
+//}
 
 //从极光服务器删除设备别名(用户退出登录时)
 //strAliasName  别名，作为消息推送的唯一标识
-func (j *JPush) Unregister(strAliasName string) (err error) {
-
-	httpCli := j.getHttpClientWithAuthorization()
-	strDelUrl := fmt.Sprintf("%v/%v", JPUSH_ALIASES_URL, strAliasName)
-	log.Debug("post to [%v] delete alias [%v]", strDelUrl, strAliasName)
-
-	resp, err := httpCli.SendUpstream("", "DELETE", strDelUrl) //删除别名
-
-	if err != nil {
-		log.Error("delete alias [%v] error [%v]", strAliasName, err)
-		return err
-	}
-
-	log.Debug("delete alias response message [%v]", string(resp))
-	return
-}
+//func (j *JPush) Unregister(strAliasName string) (err error) {
+//
+//	httpCli := j.getHttpClientWithAuthorization()
+//	strDelUrl := fmt.Sprintf("%v/%v", JPUSH_ALIASES_URL, strAliasName)
+//	log.Debug("post to [%v] delete alias [%v]", strDelUrl, strAliasName)
+//
+//	resp, err := httpCli.SendUpstream("", "DELETE", strDelUrl) //删除别名
+//
+//	if err != nil {
+//		log.Error("delete alias [%v] error [%v]", strAliasName, err)
+//		return err
+//	}
+//
+//	log.Debug("delete alias response message [%v]", string(resp))
+//	return
+//}
 
 //APP消息推送: 推送到极光服务器
 //platforms 指定平台，空切片内部自动转为所有平台
-func (j *JPush) Push(platforms []string, msg *push.Message) (err error) {
+func (j *JPush) Push(msg *push.Message) (err error) {
 
-	if len(platforms) == 0 { //不指定平台则为三个平台同时发
-		platforms = []string{push.PLATFORM_ANDROID, push.PLATFORM_IOS, push.PLATFORM_WINPHONE}
+	if len(msg.Platforms) == 0 { //不指定平台则为三个平台同时发
+		msg.Platforms = []string{push.PLATFORM_ANDROID, push.PLATFORM_IOS, push.PLATFORM_WINPHONE}
 	}
 	content := Content{
-		Platform: platforms,
+		Platform: msg.Platforms,
 	}
 
 	//Notification for android
 	content.Notification.Android.Title = msg.Title            //标题
 	content.Notification.Android.Alert = msg.Content          //内容
-	content.Notification.Android.BuilderId = msg.SoundAndroid //设置安卓声音
+	content.Notification.Android.BuilderId = 0 //设置安卓声音
 	if content.Notification.Android.BuilderId == 0 {
 		content.Notification.Android.BuilderId = 2
 	}
-	content.Notification.Android.Extras.Content = msg.Extra.Content //自定义内容
-	content.Notification.Android.Extras.Type = msg.Extra.Type       //自定义类型
-	content.Notification.Android.Extras.Url = msg.Extra.Url         //自定义跳转URL
+	content.Notification.Android.Extras = msg.Extra //自定义内容
 
 	//Notification for iOS
-	content.Notification.IOS.Alert = msg.Title    //必须要有值才能收到
-	content.Notification.IOS.Extras.Content = msg.Extra.Content
-	content.Notification.IOS.Extras.Type = msg.Extra.Type //1|2的异或运算
-	content.Notification.IOS.Extras.Url = msg.Extra.Url
+	content.Notification.IOS.Alert = msg.Title + ": " + msg.Content    //必须要有值才能收到
+	content.Notification.IOS.Extras = msg.Extra  //自定义内容
 	content.Options.TimeToLive = 60
 	content.Options.ApnsProduction = j.is_prod //判断IOS的生产还是测试环境
 	content.Notification.IOS.Sound = "default" /*msg.SoundIOS*/ //默认有声音
 	content.Notification.IOS.Badge = "+1"         //角标默+1
 
-	content.Audience.Tags = msg.Tags
-	content.Audience.Alias = msg.Alias
+	switch msg.AudienceType {
+	case push.AUDIENCE_TYPE_REGID_TOKEN: //device token or register id
+		content.Audience.RegId = msg.Audiences
+	case push.AUDIENCE_TYPE_TAG: //message group
+		content.Audience.Tag = msg.Audiences
+	//case push.AUDIENCE_TYPE_ALIAS: //disabled alias of jpush
+	//	content.Audience.Alias = msg.Audiences
+	}
 
 	log.Struct(&content)
 	data, err := json.Marshal(content)
@@ -152,12 +154,6 @@ func (j *JPush) Push(platforms []string, msg *push.Message) (err error) {
 		return err
 	}
 	strPushContent := string(data)
-	if len(msg.Tags) > 0 { //按标签推送(json数据中要删除alias key)
-		strPushContent = strings.Replace(strPushContent, `,"alias":null`, "", -1)
-	} else { //按别名推送(json数据中要删除tag key)
-		strPushContent = strings.Replace(strPushContent, `"tag":null,`, "", -1)
-	}
-
 	httpCli := j.getHttpClientWithAuthorization()
 	resp, err := httpCli.SendUpstream(strPushContent, "POST", JPUSH_PUSHAPI_URL)
 	if err != nil {

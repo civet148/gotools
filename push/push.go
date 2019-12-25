@@ -1,12 +1,15 @@
 package push
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type AdapterType int
 
 var (
-	AdapterType_JPush  AdapterType = 1 //极光推送
-	AdapterType_Google AdapterType = 2 //谷歌推送
+	AdapterType_JPush AdapterType = 1 //极光推送
+	AdapterType_Fcm   AdapterType = 2 //谷歌推送
+	AdapterTYpe_Apns  AdapterType = 3 //苹果推送
 )
 
 var (
@@ -16,31 +19,28 @@ var (
 	PLATFORM_WINPHONE = "winphone"
 )
 
-type Message struct {
-	Tags         []string //接收者的TAG标签（极光推送：tags和alias同时存在的情况下只发送给指定tag的接收者）
-	Alias        []string //接收者的别名
-	RegId        string   //极光注册ID
-	Title        string   //标题
-	Content      string   //内容
-	SoundIOS     string   //iOS声音设置 无 默认 自定义(空字符串、声音文件名、default)
-	SoundAndroid int      //声音设置(0 默认 1 播放声音文件)
-	Extra        Extras   //扩展结构，用于点击推送消息自动跳转页面(选填)
-}
+type AudienceType int
 
-//扩展结构，用于点击推送消息自动跳转页面
-type Extras struct {
-	Url     string `json:"url"`
-	Type    int32  `json:"type"`
-	Content string `json:"content"`
+var (
+	AUDIENCE_TYPE_REGID_TOKEN AudienceType = 1 //按设备注册ID/token推送(device register id or device token)
+	AUDIENCE_TYPE_TAG   AudienceType = 2 //按标签推送(message group)
+)
+
+type Message struct {
+	AudienceType AudienceType //推送类型
+	Audiences    []string     //设备注册ID或标签或别名
+	Platforms    []string     //推送平台（可为空）
+	Title        string       //标题
+	Content      string       //内容
+	SoundIOS     string      //iOS声音设置 无 默认 自定义(空字符串、声音文件名、default)
+	SoundAndroid int         //声音设置(0 默认 1 播放声音文件)
+	Extra interface{} //扩展结构，用于点击推送消息自动跳转页面(选填)
 }
 
 type IPush interface {
-	//app event: user signed in from a mobile device
-	Register(strAliasName, strRegisterId, strMobile string) (err error)
-	//app event: user signed out from a mobile device
-	Unregister(strAliasName string) (err error)
+
 	//push message to device
-	Push(platforms []string, msg *Message) (err error)
+	Push(msg *Message) (err error)
 	//enable or disable debug output
 	Debug(enable bool)
 }

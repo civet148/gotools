@@ -6,10 +6,22 @@
 
 package fcm
 
-import "time"
+import (
+	"fmt"
+	"github.com/civet148/gotools/log"
+	"github.com/civet148/gotools/push"
+	"time"
+)
+
+var FMC_PARAMS_COUNT = 1
 
 // Message represents fcm request message
 type (
+
+	Fcm struct {
+		fcm_cli *Client
+	}
+
 	Message struct {
 		// Data parameter specifies the custom key-value pairs of the message's payload.
 		//
@@ -219,6 +231,76 @@ type (
 		TitleLocArgs string `json:"title_loc_args,omitempty"`
 	}
 )
+
+func init() {
+
+	if err := push.Register(push.AdapterType_Fcm, New); err != nil {
+		log.Error("register jpush instance error [%v]", err.Error())
+	}
+}
+
+//创建极光推送接口对象
+//args[0] => apikey 开发者API密钥(string)
+func New(args ...interface{}) push.IPush {
+
+	if len(args) != FMC_PARAMS_COUNT {
+
+		panic(fmt.Errorf("expect %v parameters, got %v", FMC_PARAMS_COUNT, len(args))) //参数个数错误
+	}
+
+	return &Fcm {
+
+		fcm_cli: NewClient(args[0].(string), 5*time.Second),
+	}
+}
+
+//push message to device (by device token or register id)
+func (f *Fcm) Push(msg *push.Message) (err error) {
+
+	if msg.AudienceType != push.AUDIENCE_TYPE_REGID_TOKEN {
+		log.Error("FCM just can use AUDIENCE_TYPE_REGID_TOKEN to push message")
+		return fmt.Errorf("FCM just can use AUDIENCE_TYPE_REGID_TOKEN to push message")
+	}
+
+	fcmMsg := &Message{
+		// DryRun:          true, // 如果是 true，消息不会下发给用户，用于测试
+		Data: msg.Extra,
+		RegistrationIDs: msg.Audiences,
+		Priority:        PriorityHigh,
+		DelayWhileIdle:  true,
+		Notification: Notification{
+			Title: msg.Title,
+			Body: msg.Content,
+			//ClickAction: "com.bilibili.app.in.com.bilibili.push.FCM_MESSAGE", //点击触发事件，暂时不支持
+		},
+		//CollapseKey: strings.TrimFunc("t123456", func(r rune) bool {
+		//	return !unicode.IsNumber(r)
+		//}), // 消息分组, 值转成 int 传到客户端(暂时不支持分组)
+		TimeToLive: int(time.Hour.Seconds()),
+		Android:    Android{Priority: PriorityHigh},
+	}
+
+	response, err := f.fcm_cli.Send(fcmMsg)
+	if err != nil {
+		log.Error("pushToFcm error [%v]", err.Error())
+		return
+	}
+	if response.Ok {
+		log.Debug("pushToFcm response ok [%+v]", response)
+	} else {
+		log.Error("pushToFcm response error [%+v]", response)
+	}
+	return
+}
+
+//enable or disable debug output
+func (f *Fcm) Debug(enable bool) {
+	if enable {
+		log.SetLevel(0)
+	} else {
+		log.SetLevel(1)
+	}
+}
 
 // GetRetryAfterTime converts the retry after response header to a time.Duration
 func (r *Response) GetRetryAfterTime() (time.Duration, error) {
