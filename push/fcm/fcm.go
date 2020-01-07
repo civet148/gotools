@@ -7,9 +7,13 @@
 package fcm
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/push"
+	"io/ioutil"
+	"net/http"
 	"time"
 )
 
@@ -232,11 +236,107 @@ type (
 	}
 )
 
+const (
+	// PriorityHigh used for high notification priority
+	PriorityHigh = "high"
+
+	// PriorityNormal used for normal notification priority
+	PriorityNormal = "normal"
+
+	// HeaderRetryAfter HTTP header constant
+	HeaderRetryAfter = "Retry-After"
+
+	// ErrorKey readable error caching
+	ErrorKey = "error"
+
+	// MethodPOST indicates http post method
+	MethodPOST = "POST"
+
+	// ServerURL push server url
+	ServerURL = "https://fcm.googleapis.com/fcm/send"
+)
+
+// retryableErrors whether the error is a retryable
+var retryableErrors = map[string]bool{
+	"Unavailable":         true,
+	"InternalServerError": true,
+}
+
+// Client stores client with api key to firebase
+type Client struct {
+	APIKey     string
+	HTTPClient *http.Client
+}
+
 func init() {
 
 	if err := push.Register(push.AdapterType_Fcm, New); err != nil {
-		log.Error("register jpush instance error [%v]", err.Error())
+		log.Error("register %v instance error [%v]", push.AdapterType_Fcm, err.Error())
+		panic("register instance failed")
 	}
+}
+
+// NewClient creates a new client
+func NewClient(apiKey string, timeout time.Duration) *Client {
+	return &Client{
+		APIKey:     apiKey,
+		HTTPClient: &http.Client{Timeout: timeout},
+	}
+}
+
+func (f *Client) authorization() string {
+	return fmt.Sprintf("key=%v", f.APIKey)
+}
+
+// Send sends message to FCM
+func (f *Client) Send(message *Message) (*Response, error) {
+	data, err := json.Marshal(message)
+	if err != nil {
+		return &Response{}, err
+	}
+	req, err := http.NewRequest(MethodPOST, ServerURL, bytes.NewBuffer(data))
+	if err != nil {
+		return &Response{}, err
+	}
+	req.Header.Set("Authorization", f.authorization())
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := f.HTTPClient.Do(req)
+	if err != nil {
+		// fmt.Println(err)
+		return &Response{}, err
+	}
+	defer resp.Body.Close()
+	fmt.Println(resp)
+	response := &Response{StatusCode: resp.StatusCode}
+	if resp.StatusCode >= 500 {
+		response.RetryAfter = resp.Header.Get(HeaderRetryAfter)
+	}
+	if resp.StatusCode != 200 {
+		return response, fmt.Errorf("fcm status code(%d)", resp.StatusCode)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return response, err
+	}
+	if err := json.Unmarshal(body, &response); err != nil {
+		return response, err
+	}
+	if err := f.Failed(response); err != nil {
+		return response, err
+	}
+	response.Ok = true
+	return response, nil
+}
+
+// Failed method indicates if the server couldn't process
+// the request in time.
+func (f *Client) Failed(response *Response) error {
+	for _, response := range response.Results {
+		if retryableErrors[response.Error] {
+			return fmt.Errorf("fcm push error(%s)", response.Error)
+		}
+	}
+	return nil
 }
 
 //创建极光推送接口对象
@@ -255,11 +355,12 @@ func New(args ...interface{}) push.IPush {
 }
 
 //push message to device (by device token or register id)
-func (f *Fcm) Push(msg *push.Message) (err error) {
+func (f *Fcm) Push(msg *push.Message) (MsgID string, err error) {
 
 	if msg.AudienceType != push.AUDIENCE_TYPE_REGID_TOKEN {
+		err = fmt.Errorf("FCM just can use AUDIENCE_TYPE_REGID_TOKEN to push message")
 		log.Error("FCM just can use AUDIENCE_TYPE_REGID_TOKEN to push message")
-		return fmt.Errorf("FCM just can use AUDIENCE_TYPE_REGID_TOKEN to push message")
+		return
 	}
 
 	fcmMsg := &Message{
@@ -286,6 +387,7 @@ func (f *Fcm) Push(msg *push.Message) (err error) {
 		return
 	}
 	if response.Ok {
+		MsgID = fmt.Sprintf("%v", response.MsgID)
 		log.Debug("pushToFcm response ok [%+v]", response)
 	} else {
 		log.Error("pushToFcm response error [%+v]", response)

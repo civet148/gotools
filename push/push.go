@@ -10,8 +10,29 @@ type AdapterType int
 var (
 	AdapterType_JPush AdapterType = 1 //极光推送
 	AdapterType_Fcm   AdapterType = 2 //谷歌推送
-	AdapterTYpe_Apns  AdapterType = 3 //苹果推送
+	AdapterType_Apns  AdapterType = 3 //苹果推送
+	AdatperType_Umeng AdapterType = 4 //友盟推送
 )
+
+func (t AdapterType) String() (name string) {
+	switch t {
+	case AdapterType_JPush:
+		name = "JPUSH"
+	case AdapterType_Fcm:
+		name = "FCM"
+	case AdapterType_Apns:
+		name = "APNs"
+	case AdatperType_Umeng:
+		name = "Umeng"
+	default:
+		name = "<unknown>"
+	}
+	return
+}
+
+func (t AdapterType) GoString() (name string) {
+	return t.String()
+}
 
 var (
 	PLATFORM_ALL      = "all"
@@ -41,7 +62,7 @@ type Message struct {
 type IPush interface {
 
 	//push message to device
-	Push(msg *Message) (err error)
+	Push(msg *Message) (MsgID string, err error)
 	//enable or disable debug output
 	Debug(enable bool)
 }
@@ -73,7 +94,7 @@ func GetAdapter(adapter AdapterType, args ...interface{}) (IPush, error) {
 	return ins(args...), nil
 }
 
-func StructToMap(v interface{}) (m map[string] interface{}) {
+func StructToMap(v interface{}) (m map[string]interface{}) {
 
 	inrec, _ := json.Marshal(v)
 	_ = json.Unmarshal(inrec, &m)

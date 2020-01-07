@@ -1,10 +1,12 @@
 package main
 
 import (
+	"github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/push"
 	_ "github.com/civet148/gotools/push/apns"
 	_ "github.com/civet148/gotools/push/fcm"
 	_ "github.com/civet148/gotools/push/jpush"
+	_ "github.com/civet148/gotools/push/umeng"
 )
 
 type PushExtra struct {
@@ -13,6 +15,15 @@ type PushExtra struct {
 }
 
 func main() {
+
+	JPushMessage()  //JPUSH(极光)
+	FcmMessage()    //FCM(Google FireBase)
+	UmengMessage()  //Umeng(友盟)
+	ApnsMessage()   //APNs(Apple)
+
+}
+
+func JPushMessage() {
 
 	var strJpushRegId string = "191e35f7e02aeaa0597"
 	var strAppKey string = "2978da262aa372ed199901d2"
@@ -24,15 +35,23 @@ func main() {
 		Audiences:    []string{strJpushRegId},
 		Title:        "this is message title",
 		Alert:        "you have a new message",
-		Extra:        &PushExtra{Type: 1, ChatID: 10000},
+		Extra:        &PushExtra{Type: 1, ChatID: 10086},
 	}
 
-	JPUSH, _ := push.GetAdapter(push.AdapterType_JPush, strAppKey, strSecret, isProdEnv)
+	JPUSH, err := push.GetAdapter(push.AdapterType_JPush, strAppKey, strSecret, isProdEnv)
+	if err != nil {
+		log.Error("%v", err.Error())
+		return
+	}
 	if JPUSH != nil {
 		JPUSH.Debug(true)
-		_ = JPUSH.Push(&jMsg)
+		MsgID, err := JPUSH.Push(&jMsg)
+		log.Debug("JPUSH msg id [%v] error [%v]", MsgID, err)
 	}
 
+}
+
+func FcmMessage() {
 	//fake api key, access 'console.firebase.google.com' to get your api key
 	strApiKey := "AIzaSyBtMplqJkuTIDyIx_CM74MoPHbxHCBcY-o"
 	strFcmRegId := "fpICefK-jfE:APA11bHjZTxe503tpFoFCmXXX9LAiMmg7OwgTPYmTb8Ox-yF88umTQnmTQUGbALplxqre7R6v3d0-vSK5MyT4jFtSqklbY1GIaM4d8uZ0wJlwWrRWdBDeOJ4rlpvamd3aGyBlHKAH18N"
@@ -42,14 +61,21 @@ func main() {
 		Audiences:    []string{strFcmRegId},
 		Title:        "this is message title",
 		Alert:        "you have a new message",
-		Extra:        &PushExtra{Type: 1, ChatID: 10000},
+		Extra:        &PushExtra{Type: 1, ChatID: 10086},
 	}
-	FCM, _ := push.GetAdapter(push.AdapterType_Fcm, strApiKey)
+	FCM, err := push.GetAdapter(push.AdapterType_Fcm, strApiKey)
+	if err != nil {
+		log.Error("%v", err.Error())
+		return
+	}
 	if FCM != nil {
 		FCM.Debug(true)
-		_ = FCM.Push(&fcmMsg)
+		MsgID, err := FCM.Push(&fcmMsg)
+		log.Debug("FCM msg id [%v] error [%v]", MsgID, err)
 	}
+}
 
+func ApnsMessage() {
 	var strAuthKeyFile = "AuthKey_U4Q9F3Y9WH.p8" //APNs JWT token auth key file (.p8)
 	var strKeyID = "U4Q9F3Y9WH"                  //APNs key id
 	var strTeamID = "2965AR985S"                 //APNs team id
@@ -60,11 +86,40 @@ func main() {
 		Audiences:    []string{strDeviceToken},
 		Title:        "this is message title",
 		Alert:        "you have a new message",
-		Extra:        &PushExtra{Type: 1, ChatID: 10000},
+		Extra:        &PushExtra{Type: 1, ChatID: 10086},
 	}
-	APNs, _ := push.GetAdapter(push.AdapterTYpe_Apns, strAuthKeyFile, strKeyID, strTeamID, strTopic)
+	APNs, err := push.GetAdapter(push.AdapterType_Apns, strAuthKeyFile, strKeyID, strTeamID, strTopic)
+	if err != nil {
+		log.Error("%v", err.Error())
+		return
+	}
 	if APNs != nil {
 		APNs.Debug(true)
-		_ = APNs.Push(&apnsMsg)
+		MsgID, err := APNs.Push(&apnsMsg)
+		log.Debug("APNs msg id [%v] error [%v]", MsgID, err)
 	}
 }
+
+func UmengMessage() {
+	
+	var strAppKey = "5e1qfcp30cxfb29u570k01f3"
+	var strAppSecret = "jynhjnhhlcgt298ke9q6abpwz3n1j1pv"
+	Umeng, err := push.GetAdapter(push.AdatperType_Umeng, strAppKey, strAppSecret)
+	if err != nil {
+		log.Error("%v", err.Error())
+		return
+	}
+	if Umeng != nil {
+		Umeng.Push(&push.Message{
+			AudienceType: push.AUDIENCE_TYPE_REGID_TOKEN,
+			Audiences:    []string{"6a17coue30csp91mxy8zafb29f570001f3yaxhw913lx"},
+			Platforms:    nil,
+			Title:        "this is message title",
+			Alert:        "you have a new message",
+			SoundIOS:     "",
+			SoundAndroid: 0,
+			Extra:         &PushExtra{Type: 1, ChatID: 10086},
+		})
+	}
+}
+

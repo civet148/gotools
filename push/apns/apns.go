@@ -23,8 +23,9 @@ type ApnsMessgae struct {
 
 func init() {
 
-	if err := push.Register(push.AdapterType_Fcm, New); err != nil {
-		log.Error("register jpush instance error [%v]", err.Error())
+	if err := push.Register(push.AdapterType_Apns, New); err != nil {
+		log.Error("register %v instance error [%v]", push.AdapterType_Apns, err.Error())
+		panic("register instance failed")
 	}
 }
 
@@ -60,11 +61,13 @@ func New(args ...interface{}) push.IPush {
 }
 
 //push message to device
-func (a *Apns) Push(msg *push.Message) (err error) {
+func (a *Apns) Push(msg *push.Message) (MsgID string, err error) {
 
 	if msg.AudienceType != push.AUDIENCE_TYPE_REGID_TOKEN {
-		log.Error("APNs just can use AUDIENCE_TYPE_REGID_TOKEN to push message")
-		return fmt.Errorf("APNs just can use AUDIENCE_TYPE_REGID_TOKEN to push message")
+
+		err = fmt.Errorf("APNs just can use AUDIENCE_TYPE_REGID_TOKEN to push message")
+		log.Error("%v", err.Error())
+		return
 	}
 
 	var notification = &apns2.Notification{
@@ -90,8 +93,8 @@ func (a *Apns) Push(msg *push.Message) (err error) {
 
 	if resp.StatusCode == 200 {
 
+		MsgID = resp.ApnsID
 		log.Debug("APNs: response ok [%+v]", resp)
-
 	} else {
 		log.Error("APNs: response error [%+v]", resp)
 	}

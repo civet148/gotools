@@ -32,7 +32,8 @@ type JPush struct {
 func init() {
 
 	if err := push.Register(push.AdapterType_JPush, New); err != nil {
-		log.Error("register jpush instance error [%v]", err.Error())
+		log.Error("register %v instance error [%v]", push.AdapterType_JPush, err.Error())
+		panic("register instance failed")
 	}
 }
 
@@ -60,59 +61,59 @@ func New(args ...interface{}) push.IPush {
 //RegisterId 	App集成极光推送SDK后获得并由App客户端负责传递到服务器端
 //Mobile 		用户手机号
 //备注：			别名规则需根据实际情况定义好，确保一台设备一个账户唯一避免出现一台设备多个账户登录或一个账户多个设备登录造成消息推送失败
-//func (j *JPush) Register(strAliasName, strRegisterId, strMobile string) (err error) {
-//
-//	reg := &Register{}
-//	reg.Mobile = strMobile
-//	reg.Alias = strAliasName
-//	httpCli := j.getHttpClientWithAuthorization()
-//	strRegUrl := fmt.Sprintf("%v/%v", JPUSH_DEVICES_URL, strRegisterId)
-//	log.Debug("register post to url [%v]", strRegUrl)
-//	data, _ := json.Marshal(reg)
-//	log.Debug("register data [%v]", string(data))
-//
-//	resp, err := httpCli.SendUpstream(string(data), "POST", strRegUrl)
-//	if err != nil {
-//		log.Error("post to [%v] with register id [%v] mobile [%v] alias [%v] error [%v]", strRegUrl, strRegisterId, strMobile, strAliasName, err.Error())
-//		return err
-//	}
-//
-//	log.Debug("jpush response [%s]\n", string(resp))
-//	if string(resp) != "" {
-//		ret := IncorrectResp{}
-//		err = json.Unmarshal(resp, &ret)
-//		if err != nil {
-//			return err
-//		}
-//		log.Error("jpush response incorrect code [%v] message [%v]", ret.Error.Code, ret.Error.Message)
-//		return fmt.Errorf("%d %s", ret.Error.Code, ret.Error.Message)
-//	}
-//
-//	return
-//}
+func (j *JPush) Register(strAliasName, strRegisterId, strMobile string) (err error) {
+
+	reg := &Register{}
+	reg.Mobile = strMobile
+	reg.Alias = strAliasName
+	httpCli := j.getHttpClientWithAuthorization()
+	strRegUrl := fmt.Sprintf("%v/%v", JPUSH_DEVICES_URL, strRegisterId)
+	log.Debug("register post to url [%v]", strRegUrl)
+	data, _ := json.Marshal(reg)
+	log.Debug("register data [%v]", string(data))
+
+	resp, err := httpCli.SendUpstream(string(data), "POST", strRegUrl)
+	if err != nil {
+		log.Error("post to [%v] with register id [%v] mobile [%v] alias [%v] error [%v]", strRegUrl, strRegisterId, strMobile, strAliasName, err.Error())
+		return err
+	}
+
+	log.Debug("jpush response [%s]\n", string(resp))
+	if string(resp) != "" {
+		ret := IncorrectResp{}
+		err = json.Unmarshal(resp, &ret)
+		if err != nil {
+			return err
+		}
+		log.Error("jpush response incorrect code [%v] message [%v]", ret.Error.Code, ret.Error.Message)
+		return fmt.Errorf("%d %s", ret.Error.Code, ret.Error.Message)
+	}
+
+	return
+}
 
 //从极光服务器删除设备别名(用户退出登录时)
 //strAliasName  别名，作为消息推送的唯一标识
-//func (j *JPush) Unregister(strAliasName string) (err error) {
-//
-//	httpCli := j.getHttpClientWithAuthorization()
-//	strDelUrl := fmt.Sprintf("%v/%v", JPUSH_ALIASES_URL, strAliasName)
-//	log.Debug("post to [%v] delete alias [%v]", strDelUrl, strAliasName)
-//
-//	resp, err := httpCli.SendUpstream("", "DELETE", strDelUrl) //删除别名
-//
-//	if err != nil {
-//		log.Error("delete alias [%v] error [%v]", strAliasName, err)
-//		return err
-//	}
-//
-//	log.Debug("delete alias response message [%v]", string(resp))
-//	return
-//}
+func (j *JPush) Unregister(strAliasName string) (err error) {
+
+	httpCli := j.getHttpClientWithAuthorization()
+	strDelUrl := fmt.Sprintf("%v/%v", JPUSH_ALIASES_URL, strAliasName)
+	log.Debug("post to [%v] delete alias [%v]", strDelUrl, strAliasName)
+
+	resp, err := httpCli.SendUpstream("", "DELETE", strDelUrl) //删除别名
+
+	if err != nil {
+		log.Error("delete alias [%v] error [%v]", strAliasName, err)
+		return err
+	}
+
+	log.Debug("delete alias response message [%v]", string(resp))
+	return
+}
 
 //APP消息推送: 推送到极光服务器
 //platforms 指定平台，空切片内部自动转为所有平台
-func (j *JPush) Push(msg *push.Message) (err error) {
+func (j *JPush) Push(msg *push.Message) (MsgID string, err error) {
 
 	if len(msg.Platforms) == 0 { //不指定平台则为三个平台同时发
 		msg.Platforms = []string{push.PLATFORM_ANDROID, push.PLATFORM_IOS, push.PLATFORM_WINPHONE}
@@ -151,7 +152,7 @@ func (j *JPush) Push(msg *push.Message) (err error) {
 	data, err := json.Marshal(content)
 	if err != nil {
 		fmt.Println(err.Error())
-		return err
+		return
 	}
 	strPushContent := string(data)
 	httpCli := j.getHttpClientWithAuthorization()
@@ -172,10 +173,11 @@ func (j *JPush) Push(msg *push.Message) (err error) {
 		if err != nil {
 			log.Error("parse jpush response json data [%v] to IncorrectResp error [%v]", string(resp), err.Error())
 			err = errors.New("parse jpush response json data to IncorrectResp failed")
-			return err
+			return
 		} else {
+			err = fmt.Errorf("%v", ret.Error.Message)
 			log.Error("jpush response [%#v]", ret)
-			return errors.New(ret.Error.Message)
+			return
 		}
 	}
 	log.Debug("jpush [%+v] to [%v] ok", strPushContent, JPUSH_PUSHAPI_URL)
