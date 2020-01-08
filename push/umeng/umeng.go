@@ -15,7 +15,7 @@ import (
 )
 
 /*
-* 友盟推送服务端API接入
+* 友盟推送(支持华为/小米/vivo/oppo/魅族厂商推送通道)
  */
 
 var UMENG_PARAMS_COUNT = 2

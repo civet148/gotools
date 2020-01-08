@@ -21,17 +21,15 @@ const (
 	JPUSH_PARAMS_COUNT = 3 //两个参数（appkey+secret+is_prod）
 )
 
-
-
 var JPUSH_PUSHAPI_URL = "https://api.jpush.cn/v3/push"
 var JPUSH_DEVICES_URL = "https://device.jpush.cn/v3/devices"
 var JPUSH_ALIASES_URL = "https://device.jpush.cn/v3/aliases"
 
 type JPush struct {
-	appkey   string       //极光appkey
-	secret   string       //极光secret
-	is_prod  bool         //是否正式环境
-	http_cli *http.Client //Http客户端对象
+	appKey    string       //极光appkey
+	appSecret string       //极光secret
+	isProd    bool         //是否正式环境
+	httpCli   *http.Client //Http客户端对象
 }
 
 func init() {
@@ -55,10 +53,10 @@ func New(args ...interface{}) push.IPush {
 	}
 
 	return &JPush{
-		appkey:   args[0].(string),
-		secret:   args[1].(string),
-		is_prod:  args[2].(bool),
-		http_cli: &http.Client{},
+		appKey:   args[0].(string),
+		appSecret:   args[1].(string),
+		isProd:  args[2].(bool),
+		httpCli: &http.Client{},
 	}
 }
 
@@ -86,7 +84,7 @@ func (j *JPush) Push(msg *push.Message) (MsgID string, err error) {
 	content.Notification.IOS.Alert = msg.Alert  //必须要有值才能收到
 	content.Notification.IOS.Extras = msg.Extra //自定义内容
 	content.Options.TimeToLive = 60
-	content.Options.ApnsProduction = j.is_prod //判断IOS的生产还是测试环境
+	content.Options.ApnsProduction = j.isProd //判断IOS的生产还是测试环境
 	content.Notification.IOS.Sound = "default" /*msg.SoundIOS*/ //默认有声音
 	content.Notification.IOS.Badge = "+1"      //角标默+1
 
@@ -170,7 +168,7 @@ func (j *JPush) sendRequestWithAuthorization(strHttpMethod, strUrl string, messa
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", authorization)
 	//log.Debugf("send to http url [%v] with data [%v] ready", strUrl, string(data))
-	if resp, err = j.http_cli.Do(req); err != nil {
+	if resp, err = j.httpCli.Do(req); err != nil {
 		log.Error("send http request error [%v]", err.Error())
 		return
 	}
@@ -187,7 +185,7 @@ func (j *JPush) sendRequestWithAuthorization(strHttpMethod, strUrl string, messa
 //按照极光认证要求将appkey和secret做base64编码
 func (j *JPush) getBase64Authorization() (strAuthorization string) {
 
-	strEncode := base64.StdEncoding.EncodeToString(([]byte)(fmt.Sprintf("%v:%v", j.appkey, j.secret)))
+	strEncode := base64.StdEncoding.EncodeToString(([]byte)(fmt.Sprintf("%v:%v", j.appKey, j.appSecret)))
 	strAuthorization = fmt.Sprintf("Basic %v", strEncode)
 	log.Debug("authorization [%v]", strAuthorization)
 	return

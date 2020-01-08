@@ -12,7 +12,7 @@ import (
 )
 
 /*
-* 信鸽消息推送
+* 信鸽消息推送(支持Google FCM/小米/华为/魅族厂商推送通道)
 * 官方API文档链接：https://xg.qq.com/docs/server_api/v3/push_api_v3.html
  */
 
