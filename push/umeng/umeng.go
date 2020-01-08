@@ -60,7 +60,7 @@ type Message struct {
 type Umeng struct {
 	appKey    string       //AppKey
 	appSecret string       //AppSecret
-	http_cli  *http.Client //http client
+	httpCli  *http.Client //http client
 }
 
 type umengBody struct {
@@ -174,7 +174,7 @@ func New(args ...interface{}) push.IPush {
 	return &Umeng{
 		appKey:    args[0].(string),
 		appSecret: args[1].(string),
-		http_cli:  &http.Client{},
+		httpCli:  &http.Client{},
 	}
 }
 
@@ -222,7 +222,7 @@ func (u *Umeng) sendPushRequest(strMethod, strUrl string, reqBody interface{}) (
 
 	var respHttp *http.Response
 	log.Debug("sendHttpRequest send push to http url [%v] body [%v]", strUrl, string(body))
-	if respHttp, err = u.http_cli.Do(req); err != nil {
+	if respHttp, err = u.httpCli.Do(req); err != nil {
 		log.Error("sendHttpRequest send push notification return error [%v], http url [%v] body [%v]", err.Error(), strUrl, string(body))
 		return
 	}

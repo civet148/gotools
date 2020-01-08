@@ -264,8 +264,8 @@ var retryableErrors = map[string]bool{
 
 // Client stores client with api key to firebase
 type Client struct {
-	APIKey     string
-	HTTPClient *http.Client
+	apiKey     string
+	httpCli *http.Client
 }
 
 func init() {
@@ -279,13 +279,13 @@ func init() {
 // NewClient creates a new client
 func NewClient(apiKey string, timeout time.Duration) *Client {
 	return &Client{
-		APIKey:     apiKey,
-		HTTPClient: &http.Client{Timeout: timeout},
+		apiKey:     apiKey,
+		httpCli: &http.Client{Timeout: timeout},
 	}
 }
 
 func (f *Client) authorization() string {
-	return fmt.Sprintf("key=%v", f.APIKey)
+	return fmt.Sprintf("key=%v", f.apiKey)
 }
 
 // Send sends message to FCM
@@ -300,7 +300,7 @@ func (f *Client) Send(message *Message) (*Response, error) {
 	}
 	req.Header.Set("Authorization", f.authorization())
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := f.HTTPClient.Do(req)
+	resp, err := f.httpCli.Do(req)
 	if err != nil {
 		// fmt.Println(err)
 		return &Response{}, err

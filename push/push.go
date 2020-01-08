@@ -8,10 +8,18 @@ import (
 type AdapterType int
 
 var (
+	HTTP_METHOD_GET    = "GET"
+	HTTP_METHOD_POST   = "POST"
+	HTTP_METHOD_DELETE = "DELETE"
+	HTTP_METHOD_UPLOAD = "UPLOAD"
+)
+
+var (
 	AdapterType_JPush AdapterType = 1 //极光推送
 	AdapterType_Fcm   AdapterType = 2 //谷歌推送
 	AdapterType_Apns  AdapterType = 3 //苹果推送
 	AdatperType_Umeng AdapterType = 4 //友盟推送
+	AdapterType_XinGe AdapterType = 5 //信鸽推送
 )
 
 func (t AdapterType) String() (name string) {
@@ -24,6 +32,8 @@ func (t AdapterType) String() (name string) {
 		name = "APNs"
 	case AdatperType_Umeng:
 		name = "Umeng"
+	case AdapterType_XinGe:
+		name = "XinGe"
 	default:
 		name = "<unknown>"
 	}
