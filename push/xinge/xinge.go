@@ -299,7 +299,7 @@ func (x *XinGe) Push(msg *push.Message) (MsgID string, err error) {
 
 	var resp xingeResponse
 	if err = json.Unmarshal(respData, &resp); err != nil {
-		log.Error("unmarshal http response data to xingeResponse object error [%v]", err.Error())
+		log.Error("unmarshal http response data [%+v] to xingeResponse object error [%v]", string(respData), err.Error())
 		err = fmt.Errorf("%s", respData)
 		return
 	}
