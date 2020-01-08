@@ -76,8 +76,8 @@ type xingeBrowser struct {
 type xingeAction struct {
 	ActionType int           `json:"action_type"` // 动作类型，1，打开activity或app本身；2，打开浏览器；3，打开Intent
 	Activity   string        `json:"activity"`
-	AtyAttr    *xingeAtyAttr `json:"aty_attr"` //activity属性，只针对action_type=1的情况
-	Browser    *xingeBrowser `json:"browser"`  //URL跳转
+	AtyAttr    *xingeAtyAttr `json:"aty_attr,omitempty"` //activity属性，只针对action_type=1的情况
+	Browser    *xingeBrowser `json:"browser,omitempty"`  //URL跳转
 	Intent     string        `json:"intent"`   //SDK版本需要大于等于3.2.3，然后在客户端的intent配置data标签，并设置scheme属性
 }
 
@@ -114,7 +114,7 @@ type xingeAndroid struct {
 	//消息在状态栏显示的图标，若不设置，则显示应用图标
 	SmallIcon string `json:"small_icon"`
 	//设置点击通知栏之后的行为，默认为打开app
-	Action *xingeAction `json:"action"`
+	Action *xingeAction `json:"action,omitempty"`
 	//用户自定义的键值对
 	CustomContent interface{} `json:"custom_content,omitempty"`
 }
@@ -300,6 +300,7 @@ func (x *XinGe) Push(msg *push.Message) (MsgID string, err error) {
 	var resp xingeResponse
 	if err = json.Unmarshal(respData, &resp); err != nil {
 		log.Error("unmarshal http response data to xingeResponse object error [%v]", err.Error())
+		err = fmt.Errorf("%s", respData)
 		return
 	}
 	if resp.RetCode == 0 {
