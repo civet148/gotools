@@ -130,7 +130,7 @@ func XingeMessage() {
 
 
 	var strAppKey string = "b1b86bd2a16b8"
-	var strSecret string = "zbzzc05cfc8317ea224ze4b5c367z737"
+	var strSecret string = "9b99c05cfc8317ea2249e4b5c367z737"
 	var strToken string = "6a17coue30csp91mxy8zafb29f570001f3yaxhwz" //iOS 64字节 安卓40字节
 	var isProdEnv = false //sandbox environment is false, production is true for iOS
 

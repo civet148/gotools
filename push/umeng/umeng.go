@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/civet148/gotools/push"
 	"io/ioutil"
@@ -264,7 +265,7 @@ func (u *Umeng) Push(msg *push.Message) (MsgID string, err error) {
 
 	if msg.AudienceType != push.AUDIENCE_TYPE_REGID_TOKEN {
 
-		err = fmt.Errorf("Umeng just can use AUDIENCE_TYPE_REGID_TOKEN to push message")
+		err = errors.New("Umeng just can use AUDIENCE_TYPE_REGID_TOKEN to push message")
 		log.Error("%v", err.Error())
 		return
 	}
