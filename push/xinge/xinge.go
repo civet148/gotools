@@ -17,7 +17,7 @@ import (
  */
 
 const (
-	XINGE_PARAMS_COUNT = 3 //两个参数（appkey+secret）
+	XINGE_PARAMS_COUNT = 3 //必填参数个数
 )
 
 var (
@@ -47,10 +47,11 @@ var (
 var XINGE_PUSHAPI_URL = "https://openapi.xg.qq.com/v3/push/app"
 
 type XinGe struct {
-	appKey    string       //信鸽appkey
-	appSecret string       //信鸽secret
-	isProd    bool         //是否正式环境[仅适用于苹果iOS设备]（true=正式环境 false=测试环境）
-	httpCli   *http.Client //Http客户端对象
+	appKey      string       //信鸽appkey
+	appSecret   string       //信鸽secret
+	isProd      bool         //是否正式环境[仅适用于苹果iOS设备]（true=正式环境 false=测试环境）
+	strActivity string       //安卓通知点击跳转activity
+	httpCli     *http.Client //Http客户端对象
 }
 
 type xingeTime struct {
@@ -78,7 +79,7 @@ type xingeAction struct {
 	Activity   string        `json:"activity"`
 	AtyAttr    *xingeAtyAttr `json:"aty_attr,omitempty"` //activity属性，只针对action_type=1的情况
 	Browser    *xingeBrowser `json:"browser,omitempty"`  //URL跳转
-	Intent     string        `json:"intent"`   //SDK版本需要大于等于3.2.3，然后在客户端的intent配置data标签，并设置scheme属性
+	Intent     string        `json:"intent"`             //SDK版本需要大于等于3.2.3，然后在客户端的intent配置data标签，并设置scheme属性
 }
 
 type xingeTagList struct {
@@ -196,18 +197,25 @@ func init() {
 //args[0] => appKey 	string 信鸽app key
 //args[1] => appSecret 	string 信鸽app secret
 //args[2] => isProd   	bool   是否iOS正式环境（true=正式环境 false=测试环境）
+//args[3] => activity string 		[可选]推送通知点击跳转activity
 func New(args ...interface{}) push.IPush {
 
-	if len(args) != XINGE_PARAMS_COUNT {
+	var nArgs = len(args)
+	if nArgs < XINGE_PARAMS_COUNT {
 
 		panic(fmt.Errorf("expect %v parameters, got %v", XINGE_PARAMS_COUNT, len(args))) //参数个数错误
 	}
 
+	var strActivity string
+	if nArgs > XINGE_PARAMS_COUNT {
+		strActivity = args[3].(string)
+	}
 	return &XinGe{
-		appKey:    args[0].(string),
-		appSecret: args[1].(string),
-		isProd:    args[2].(bool),
-		httpCli:   &http.Client{},
+		appKey:      args[0].(string),
+		appSecret:   args[1].(string),
+		isProd:      args[2].(bool),
+		strActivity: strActivity,
+		httpCli:     &http.Client{},
 	}
 }
 
@@ -259,8 +267,8 @@ func (x *XinGe) Push(msg *push.Message) (MsgID string, err error) {
 				StyleID:        0,
 				SmallIcon:      "",
 				Action: &xingeAction{
-					ActionType: 0,
-					Activity:   "",
+					ActionType: 1,
+					Activity:   x.strActivity,
 					AtyAttr:    &xingeAtyAttr{},
 					Browser:    &xingeBrowser{},
 					Intent:     "",

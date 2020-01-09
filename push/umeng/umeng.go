@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/push"
 	"io/ioutil"
-	"github.com/civet148/gotools/log"
 	"net/http"
 	"strings"
 	"time"
@@ -59,9 +59,10 @@ type Message struct {
 }
 
 type Umeng struct {
-	appKey    string       //AppKey
-	appSecret string       //AppSecret
-	httpCli  *http.Client //http client
+	appKey      string       //AppKey
+	appSecret   string       //AppSecret
+	httpCli     *http.Client //http client
+	strActivity string       //go to activity
 }
 
 type umengBody struct {
@@ -142,6 +143,10 @@ type umengNotification struct {
 	Filter string `json:"filter,omitempty"`
 
 	Payload umengPayload `json:"payload"`
+
+	MiPush bool `json:"mipush"` //可选，默认为false, 当为true时，表示MIUI、EMUI、Flyme系统设备离线转为系统下发
+
+	MiActivity string `json:"mi_activity"` //可选，mipush值为true时生效，表示走系统通道时打开指定页面acitivity的完整包路径。
 }
 
 type Response struct {
@@ -154,7 +159,6 @@ type Response struct {
 	} `json:"data"`
 }
 
-
 func init() {
 
 	if err := push.Register(push.AdatperType_Umeng, New); err != nil {
@@ -164,18 +168,25 @@ func init() {
 }
 
 //创建友盟推送接口对象
-//args[0] => appkey string 友盟App key
-//args[1] => secret string 友盟App master secret
+//args[0] => appkey   string 		[必填]友盟App key
+//args[1] => secret   string 		[必填]友盟App master secret
+//args[2] => activity string 		[可选]推送通知点击跳转activity
 func New(args ...interface{}) push.IPush {
 
-	if len(args) != UMENG_PARAMS_COUNT {
+	var nArgs = len(args)
+	if nArgs < UMENG_PARAMS_COUNT {
 		panic(fmt.Errorf("expect %v parameters, got %v", UMENG_PARAMS_COUNT, len(args))) //参数个数错误
 	}
 
+	var strActivity string
+	if nArgs > UMENG_PARAMS_COUNT {
+		strActivity = args[2].(string)
+	}
 	return &Umeng{
-		appKey:    args[0].(string),
-		appSecret: args[1].(string),
-		httpCli:  &http.Client{},
+		appKey:      args[0].(string),
+		appSecret:   args[1].(string),
+		strActivity: strActivity,
+		httpCli:     &http.Client{},
 	}
 }
 
@@ -292,24 +303,31 @@ func (u *Umeng) Push(msg *push.Message) (MsgID string, err error) {
 		Payload: umengPayload{
 			DisplayType: DISPLAY_TYPE_NOTIFICATION,
 			Body: umengBody{
-				Ticker:      msg.Title,
-				Title:       msg.Title,
-				Text:        msg.Alert,
+				Ticker: msg.Title,
+				Title:  msg.Title,
+				Text:   msg.Alert,
 				//Icon:        "",
 				//LargeIcon:   "",
 				//Image:       "",
 				//Sound:       "",
-				BuilderID:   0,
+				BuilderID: 0,
 				//PlayVibrate: false,
 				//PlayLights:  false,
 				//PlaySound:   false,
-				//AfterOpen:   "",
+				AfterOpen: "go_app",
 				//Url:         "",
 				//Activity:    "",
 				//Custom:      nil,
 			},
 			Extra: msg.Extra,
 		},
+		MiPush:     true,          //开启厂商通道转发推送通知
+		MiActivity: u.strActivity, //点击通知跳转activity
+	}
+
+	if u.strActivity != "" {
+		notification.Payload.Body.AfterOpen = "go_activity"
+		notification.Payload.Body.Activity = u.strActivity
 	}
 
 	return u.sendPushRequest(UMENG_METHOD_POST, UMENG_PUSH_API_URL, notification)
