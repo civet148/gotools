@@ -14,13 +14,13 @@
 
 ## 信鸽(XinGe)
 
-支持 FCM/HUAWEI/XIAOMI/MEIZU 厂商通道(需在信鸽开发者平台配置相关厂商的AppKey+AppSecret并且APP端需集成相关厂商的推送SDK)
+支持 FCM/HUAWEI/XIAOMI/MEIZU 厂商通道(需在信鸽开发者平台开启厂商通道并配置相关厂商的AppKey+AppSecret并且APP端需集成相关厂商的推送SDK)
 
 * API集成文档官方URL https://xg.qq.com/docs/server_api/v3/rest_api_summary.html
 
 ## 友盟推送
 
-支持 HUAWEI/XIAOMI/MEIZU/VIVO/OPPO 厂商通道(需在友盟开发者平台配置相关厂商的AppKey+AppSecret并且APP端需集成相关厂商的推送SDK)
+支持 HUAWEI/XIAOMI/MEIZU/VIVO/OPPO 厂商通道(服务端需在发送推送通知报文中指定mipush=true并在友盟开发者平台配置相关厂商的AppKey+AppSecret并且APP端需集成相关厂商的推送SDK)
 
 
 * API集成文档官方URL https://developer.umeng.com/docs/66632/detail/68343
