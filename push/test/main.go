@@ -19,8 +19,8 @@ func main() {
 
 	//JPushMessage()  //JPUSH(极光)
 	//FcmMessage()    //FCM(Google FireBase)
-	//UmengMessage()  //Umeng(友盟)
-	XingeMessage()  //信鸽(tencent)
+	UmengMessage()  //Umeng(友盟)
+	//XingeMessage()  //信鸽(tencent)
 	//ApnsMessage()   //APNs(Apple)
 }
 
@@ -107,7 +107,8 @@ func UmengMessage() {
 	var strAppKey = "5e1qfcp30cxfb29u570k01f3"
 	var strAppSecret = "jynhjnhhlcgt298ke9q6abpwz3n1j1pv"
 	var strToken = "6a17coue30csp91mxy8zafb29f570001f3yaxhw913lx" //iOS 64字节 安卓 44字节
-	Umeng, err := push.GetAdapter(push.AdatperType_Umeng, strAppKey, strAppSecret)
+	var strActivity = "org.mychat.ui.LaunchActivity"
+	Umeng, err := push.GetAdapter(push.AdatperType_Umeng, strAppKey, strAppSecret, strActivity)
 	if err != nil {
 		log.Error("%v", err.Error())
 		return
