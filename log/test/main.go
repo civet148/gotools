@@ -1,9 +1,8 @@
 package main
 
 import (
-	"time"
-
 	log "github.com/civet148/gotools/log"
+	"time"
 )
 
 /**
@@ -68,7 +67,7 @@ type testSt struct {
 
 func main() {
 
-	strUrl := "test.log" //指定当前目录创建日志文件（Windows+linux通用）
+	strUrl := "file://test.tg.log?log_level=DEBUG&file_size=1" //指定当前目录创建日志文件（Windows+linux通用）
 	//strUrl := "file://e:/test.log" //指定日志文件但不指定属性（Windows）
 	//strUrl := "file:///tmp/test.log" //指定日志文件但不指定属性(Linux)
 	//strUrl := "json:///tmp/test.json" //json文件名(Linux)
@@ -79,22 +78,27 @@ func main() {
 	log.Open(strUrl)
 	defer log.Close()
 
-	//log.SetLevel(log.LEVEL_INFO)
-	log.Debug("This is debug message")
-	log.Info("This is info message")
-	log.Warn("This is warn message")
-	log.Error("This is error message")
-	log.Fatal("This is fatal message")
-	time.Sleep(5 * time.Millisecond)
+	for i := 0; i < 1; i++ {
+		//log.SetLevel(log.LEVEL_INFO)
+		log.Debug("This is debug message")
+		log.Info("This is info message")
+		log.Warn("This is warn message")
+		log.Error("This is error message")
+		log.Fatal("This is fatal message")
+		time.Sleep(5 * time.Millisecond)
 
-	var ip int32 = 10
-	st1 := testSt{abc:10086, flt32: 0.58, flt64: 0.96666, ui8: 25, ui32: 10032, i8: 44, i64: 100000000000019, str: "ni hao", slice: []string{"str1", "str2"},
-		MyInt: 1, MyFloat64: 2.00, ip: &ip, MySubSt: TestSubSt{SubInt: 1, SubStr: "MySubSt"},
-		MySubStPtr: &TestSubSt{SubInt: 19, SubStr: "MySubStPtr", sst: &SubSubSt{Name:"I'm subsubst object"}}}
+		var ip int32 = 10
+		st1 := testSt{abc:10086, flt32: 0.58, flt64: 0.96666, ui8: 25, ui32: 10032, i8: 44, i64: 100000000000019, str: "ni hao", slice: []string{"str1", "str2"},
+			MyInt: 1, MyFloat64: 2.00, ip: &ip, MySubSt: TestSubSt{SubInt: 1, SubStr: "MySubSt"},
+			MySubStPtr: &TestSubSt{SubInt: 19, SubStr: "MySubStPtr", sst: &SubSubSt{Name:"I'm subsubst object"}}}
 
-	st2 := &testSt{MyInt: 2, MyFloat64: 4.00, abc:9999}
-	log.Json(st1, st2)
-	log.Json("hello , I'm a string object", 123456, []int{100, 200, 300, 400}, map[string]interface{}{"key1": 109, "key2": "hello"})
-	log.Struct(st1, st2)
+		st2 := &testSt{MyInt: 2, MyFloat64: 4.00, abc:9999}
+		log.Json(st1, st2)
+		log.Json("hello , I'm a string object", 123456, []int{100, 200, 300, 400}, map[string]interface{}{"key1": 109, "key2": "hello"})
+		log.Struct(st1, st2)
+	}
+
 	log.Info("Program exit...")
+
+
 }
