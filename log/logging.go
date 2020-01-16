@@ -90,10 +90,12 @@ var jsonExample = `{
       "file_size":"50"
    }`
 
+var stic *Statistic //数据统计对象
 var colorStdout = colorable.NewColorableStdout()
 
 func init() {
 	filesize = 50 //MB
+	stic = NewStatistic()
 }
 
 func Open(strUrl string) bool {
@@ -332,7 +334,9 @@ func Output(level int, fmtstr string, args ...interface{}) {
 			if fs > int64(filesize*1024*1024) {
 
 				logfile.Close()
-				newpath := filepath + "." + time.Now().Format("2006-01-02_15_04_05")
+				datetime := time.Now().Format("20060102-150405")
+				res := strings.Split(filepath, ".")
+				newpath := fmt.Sprintf("%v-%v.log", res[0], datetime)
 				e = os.Rename(filepath, newpath) //将文件备份
 				if e != nil {
 					Error("%s", e)
@@ -348,38 +352,44 @@ func Output(level int, fmtstr string, args ...interface{}) {
 }
 
 //输出调试级别信息
-func Debug(fmtstr string, args ...interface{}) {
+func Debug(fmtstr string, args ...interface{}) *Statistic {
 	Output(LEVEL_DEBUG, fmtstr, args...)
+	return stic
 }
 
 //输出运行级别信息
-func Info(fmtstr string, args ...interface{}) {
+func Info(fmtstr string, args ...interface{}) *Statistic {
 	Output(LEVEL_INFO, fmtstr, args...)
+	return stic
 }
 
 //输出警告级别信息
-func Warn(fmtstr string, args ...interface{}) {
+func Warn(fmtstr string, args ...interface{}) *Statistic {
 	Output(LEVEL_WARN, fmtstr, args...)
+	return stic
 }
 
 //输出警告级别信息
-func Warning(fmtstr string, args ...interface{}) {
+func Warning(fmtstr string, args ...interface{}) *Statistic {
 	Output(LEVEL_WARN, fmtstr, args...)
+	return stic
 }
 
 //输出错误级别信息
-func Error(fmtstr string, args ...interface{}) {
+func Error(fmtstr string, args ...interface{}) *Statistic {
 	Output(LEVEL_ERROR, fmtstr, args...)
+	return stic
 }
 
 //输出危险级别信息
-func Fatal(fmtstr string, args ...interface{}) {
+func Fatal(fmtstr string, args ...interface{}) *Statistic {
 	Output(LEVEL_FATAL, fmtstr, args...)
+	return stic
 }
 
 //输出到空设备
-func Null(fmtstr string, args ...interface{}) {
-
+func Null(fmtstr string, args ...interface{}) *Statistic {
+	return stic
 }
 
 //打印结构体JSON
@@ -405,6 +415,10 @@ func Json(args ...interface{}) {
 		}
 		Output(LEVEL_JSON, fmt.Sprintf("(%v) %v ", strTypeName, string(data)))
 	}
+}
+
+func Summary(args...interface{}) string {
+	return stic.summary(args...)
 }
 
 //打印结构体
