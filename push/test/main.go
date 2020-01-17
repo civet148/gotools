@@ -19,8 +19,8 @@ func main() {
 
 	//JPushMessage()  //JPUSH(极光)
 	//FcmMessage()    //FCM(Google FireBase)
-	UmengMessage()  //Umeng(友盟)
-	//XingeMessage()  //信鸽(tencent)
+	//UmengMessage()  //Umeng(友盟)
+	XingeMessage()  //信鸽(tencent)
 	//ApnsMessage()   //APNs(Apple)
 }
 
