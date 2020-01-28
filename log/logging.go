@@ -334,16 +334,9 @@ func Output(level int, fmtstr string, args ...interface{}) {
 			if fs > int64(filesize*1024*1024) {
 
 				logfile.Close()
-
-				var newpath string
 				datetime := time.Now().Format("20060102-150405")
-				nIndex := strings.LastIndex(filepath, ".")
-				if nIndex == -1 {
-					newpath = fmt.Sprintf("%v-%v", filepath, datetime) //如果日志文件名没有.xxx后缀则直接跟日期
-				} else {
-					newpath = fmt.Sprintf("%v-%v%v", filepath[:nIndex], datetime, filepath[nIndex:])
-				}
-
+				res := strings.Split(filepath, ".")
+				newpath := fmt.Sprintf("%v-%v.log", res[0], datetime)
 				e = os.Rename(filepath, newpath) //将文件备份
 				if e != nil {
 					Error("%s", e)
