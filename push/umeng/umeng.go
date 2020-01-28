@@ -1,16 +1,14 @@
 package umeng
 
 import (
-	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/civet148/gotools/comm/httpx"
 	"github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/push"
-	"io/ioutil"
-	"net/http"
 	"strings"
 	"time"
 )
@@ -61,7 +59,6 @@ type Message struct {
 type Umeng struct {
 	appKey      string       //AppKey
 	appSecret   string       //AppSecret
-	httpCli     *http.Client //http client
 	strActivity string       //go to activity
 }
 
@@ -186,7 +183,6 @@ func New(args ...interface{}) push.IPush {
 		appKey:      args[0].(string),
 		appSecret:   args[1].(string),
 		strActivity: strActivity,
-		httpCli:     &http.Client{},
 	}
 }
 
@@ -199,10 +195,15 @@ func New(args ...interface{}) push.IPush {
 // - 拼接请求方法、url、post-body及应用的app_master_secret
 // - 将D形成字符串计算MD5值，形成一个32位的十六进制（字母小写）字符串，即为本次请求sign（签名）的值；Sign=MD5($http_method$url$post-body$app_master_secret)
 //python代码参考 https://developer.umeng.com/docs/66632/detail/68343#h2--k-17
-func (u *Umeng) getSignature(strMethod, strUrl, body string) (strSign string) {
+func (u *Umeng) getSignature(strMethod, strUrl string, reqBody interface{}) (strSign string) {
 
+	 body, err := json.Marshal(reqBody)
+	 if	 err != nil {
+			log.Error("request body marshal error [%v]", err.Error())
+		return
+	}
 	strMethod = strings.ToUpper(strMethod) //http method转为大写
-	strText := fmt.Sprintf("%v%v%v%v", strMethod, strUrl, body, u.appSecret)
+	strText := fmt.Sprintf("%v%v%v%v", strMethod, strUrl, string(body), u.appSecret)
 	log.Debug("getSignature() text-> [%v]", strText)
 	m := md5.New()
 	m.Write([]byte(strText))
@@ -213,45 +214,20 @@ func (u *Umeng) getSignature(strMethod, strUrl, body string) (strSign string) {
 
 func (u *Umeng) sendPushRequest(strMethod, strUrl string, reqBody interface{}) (MsgID string, err error) {
 
-	var body []byte
-
-	if body, err = json.Marshal(reqBody); err != nil {
-		log.Error("request body marshal error [%v]", err.Error())
-		return
-	}
-
-	strSign := u.getSignature(strMethod, strUrl, string(body))
-
-	var req *http.Request
-
+	strSign := u.getSignature(strMethod, strUrl, reqBody)
 	strUrl = fmt.Sprintf("%v?sign=%v", strUrl, strSign)
-	if req, err = http.NewRequest(strMethod, strUrl, bytes.NewBuffer(body)); err != nil {
-		log.Error("sendHttpRequest http.NewRequest return error [%v]", err.Error())
+
+	var response *httpx.Response
+	c := httpx.NewHttpClient(3)
+	c.Header().SetApplicationJson()
+	if response, err = c.Post(strUrl, reqBody); err != nil {
+		log.Error("%v", err.Error())
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	var respHttp *http.Response
-	log.Debug("sendHttpRequest send push to http url [%v] body [%v]", strUrl, string(body))
-	if respHttp, err = u.httpCli.Do(req); err != nil {
-		log.Error("sendHttpRequest send push notification return error [%v], http url [%v] body [%v]", err.Error(), strUrl, string(body))
-		return
-	}
-
-	defer respHttp.Body.Close()
-
-	var respData []byte
-	if respData, err = ioutil.ReadAll(respHttp.Body); err != nil {
-		log.Error("sendHttpRequest read response data error [%v]", err.Error())
-		return
-	}
-
-	log.Info("sendHttpRequest response raw data [%v]", string(respData))
 
 	var respUmeng Response
-	if err = json.Unmarshal(respData, &respUmeng); err != nil {
-		log.Error("sendHttpRequest unmarshal response to struct error [%v] resp data [%v]", err.Error(), string(respData))
+	if err = json.Unmarshal([]byte(response.Body), &respUmeng); err != nil {
+		log.Error("sendHttpRequest unmarshal response to struct error [%v] resp data [%v]", err.Error(), string(response.Body))
 		return
 	}
 

@@ -1,15 +1,13 @@
 package jpush
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/civet148/gotools/comm/httpx"
 	"github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/push"
-	"io/ioutil"
-	"net/http"
 	"strings"
 )
 
@@ -29,7 +27,6 @@ type JPush struct {
 	appKey    string       //极光appkey
 	appSecret string       //极光secret
 	isProd    bool         //是否正式环境
-	httpCli   *http.Client //Http客户端对象
 }
 
 func init() {
@@ -56,7 +53,6 @@ func New(args ...interface{}) push.IPush {
 		appKey:   args[0].(string),
 		appSecret:   args[1].(string),
 		isProd:  args[2].(bool),
-		httpCli: &http.Client{},
 	}
 }
 
@@ -97,26 +93,21 @@ func (j *JPush) Push(msg *push.Message) (MsgID string, err error) {
 		//	content.Audience.Alias = msg.Audiences
 	}
 
-	log.Struct(&content)
-	data, _ := json.Marshal(content)
-	strPushContent := string(data)
-
-	var resp []byte
-	if resp, err = j.sendRequestWithAuthorization(push.HTTP_METHOD_POST, JPUSH_PUSHAPI_URL, strPushContent); err != nil {
+	var resp *httpx.Response
+	if resp, err = j.sendRequestWithAuthorization(JPUSH_PUSHAPI_URL, content); err != nil {
 		log.Error("%v", err.Error())
 		return
 	}
 
-	log.Debug("post to [%v] with [%v] got response message = [%s]", JPUSH_PUSHAPI_URL, strPushContent, string(resp))
+	log.Debug("post to [%v] with [%+v] got response code [%v] message = [%s]", JPUSH_PUSHAPI_URL, content, resp.StatusCode, resp.Body)
 
-	delstr := string(resp)
-	index := strings.Index(delstr, "sendno")
+	index := strings.Index(resp.Body, "sendno")
 
 	if index < 0 { //没找到·就是失败
 		ret := &IncorrectResp{}
-		err = json.Unmarshal(resp, &ret)
+		err = json.Unmarshal([]byte(resp.Body), &ret)
 		if err != nil {
-			log.Error("parse jpush response json data [%v] to IncorrectResp error [%v]", string(resp), err.Error())
+			log.Error("parse jpush response json data [%v] to IncorrectResp error [%v]", resp.Body, err.Error())
 			err = errors.New("parse jpush response json data to IncorrectResp failed")
 			return
 		} else {
@@ -125,7 +116,7 @@ func (j *JPush) Push(msg *push.Message) (MsgID string, err error) {
 			return
 		}
 	}
-	log.Debug("jpush [%+v] to [%v] ok", strPushContent, JPUSH_PUSHAPI_URL)
+	log.Debug("jpush [%+v] to [%v] ok", content, JPUSH_PUSHAPI_URL)
 	return
 }
 
@@ -139,46 +130,16 @@ func (j *JPush) Debug(enable bool) {
 }
 
 //获取HTTP客户端对象（包含认证信息）
-func (j *JPush) sendRequestWithAuthorization(strHttpMethod, strUrl string, message interface{}) (resp_data []byte, err error) {
-
-	var data []byte
-
-	if message != nil {
-		switch message.(type) {
-		case string:
-			data = []byte(message.(string))
-		default:
-			data, err = json.Marshal(message)
-			if err != nil {
-				log.Error("message json marshal error [%v]", err.Error())
-				return
-			}
-		}
-	}
-
-	var req *http.Request
-	var resp *http.Response
+func (j *JPush) sendRequestWithAuthorization(strUrl string, message interface{}) (response *httpx.Response, err error) {
 
 	authorization := j.getBase64Authorization()
-	if req, err = http.NewRequest(strHttpMethod, strUrl, bytes.NewBuffer(data)); err != nil {
-
-		log.Error("http.NewRequest error [%v]", err.Error())
+	c := httpx.NewHttpClient(3)
+	c.Header().SetApplicationJson().SetAuthorization(authorization)
+	if response, err = c.Post(strUrl, message); err != nil {
+		log.Error("%v", err.Error())
 		return
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", authorization)
-	//log.Debugf("send to http url [%v] with data [%v] ready", strUrl, string(data))
-	if resp, err = j.httpCli.Do(req); err != nil {
-		log.Error("send http request error [%v]", err.Error())
-		return
-	}
-	defer resp.Body.Close()
-	if resp_data, err = ioutil.ReadAll(resp.Body); err != nil {
-		log.Error("ioutil.ReadAll(resp.Body) error [%v]", err.Error())
-		return
-	}
-
-	log.Debug("[%v] http url [%v] with data [%s] successful, got response [%s]", strHttpMethod, strUrl, data, resp_data)
+	log.Debug("response [%+v]", response)
 	return
 }
 
