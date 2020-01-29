@@ -90,12 +90,12 @@ var jsonExample = `{
       "file_size":"50"
    }`
 
-var stic *Statistic //数据统计对象
+var stic *statistic //数据统计对象
 var colorStdout = colorable.NewColorableStdout()
 
 func init() {
 	filesize = 50 //MB
-	stic = NewStatistic()
+	stic = newStatistic()
 }
 
 func Open(strUrl string) bool {
@@ -106,7 +106,7 @@ func Open(strUrl string) bool {
 		return false
 	}
 
-	err := logurl.ParseUrl(strUrl)
+	err := logurl.parseUrl(strUrl)
 	if err != nil {
 		Error("%s", err)
 		return false
@@ -114,7 +114,7 @@ func Open(strUrl string) bool {
 
 	if logurl.Scheme == "json" { //以 'json://' 开头的URL
 
-		err = logurl.ReadFromJson() //从JSON配置文件读取
+		err = logurl.readFromJson() //从JSON配置文件读取
 		if err != nil {
 			Error("%s", err)
 			return false
@@ -122,7 +122,7 @@ func Open(strUrl string) bool {
 
 	} else if logurl.Scheme == "file" || logurl.Scheme == "" { //以 'file://' 开头的URL或者没有协议名
 
-		return logurl.CreateFile() //创建文件
+		return logurl.createFile() //创建文件
 	} else {
 		Error("Unknown scheme [%s]", logurl.Scheme)
 	}
@@ -144,7 +144,7 @@ func Close() {
 }
 
 //解析Url
-func (lu *LogUrl) ParseUrl(strUrl string) (err error) {
+func (lu *LogUrl) parseUrl(strUrl string) (err error) {
 
 	var querys url.Values
 	u, err := url.Parse(strUrl)
@@ -173,7 +173,7 @@ func (lu *LogUrl) ParseUrl(strUrl string) (err error) {
 		case "file_size":
 			filesize, _ = strconv.Atoi(v[0])
 		case "log_level":
-			loglevel = GetLevel(v[0])
+			loglevel = getLevel(v[0])
 		}
 	}
 
@@ -183,7 +183,7 @@ func (lu *LogUrl) ParseUrl(strUrl string) (err error) {
 }
 
 //创建日志文件
-func (lu *LogUrl) CreateFile() bool {
+func (lu *LogUrl) createFile() bool {
 	var err error
 	logfile, err = os.OpenFile(filepath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
@@ -197,7 +197,7 @@ func (lu *LogUrl) CreateFile() bool {
 }
 
 //从json文件加载配置
-func (lu *LogUrl) ReadFromJson() (err error) {
+func (lu *LogUrl) readFromJson() (err error) {
 
 	strJsonFile := filepath
 
@@ -222,7 +222,7 @@ func (lu *LogUrl) ReadFromJson() (err error) {
 			}
 
 			filepath = logjson.LogCon.FilePath
-			loglevel = GetLevel(logjson.LogCon.LogLevel)
+			loglevel = getLevel(logjson.LogCon.LogLevel)
 			filesize = logjson.LogCon.FileSize
 			console = logjson.LogCon.Console
 			if !console {
@@ -237,7 +237,7 @@ func (lu *LogUrl) ReadFromJson() (err error) {
 }
 
 //截取函数名称
-func GetFuncName(pc uintptr) (name string) {
+func getFuncName(pc uintptr) (name string) {
 
 	n := runtime.FuncForPC(pc).Name()
 	ns := strings.Split(n, ".")
@@ -252,7 +252,7 @@ func SetLevel(nLevel int) {
 }
 
 //通过级别名称获取索引
-func GetLevel(name string) (idx int) {
+func getLevel(name string) (idx int) {
 
 	name = "[" + name + "]"
 	switch name {
@@ -275,14 +275,20 @@ func GetLevel(name string) (idx int) {
 	return
 }
 
+func getCaller(skip int) (strFile, strFunc string, nLineNo int) {
+	pc, file, line, ok := runtime.Caller(skip)
+	if ok {
+		strFile = path.Base(file)
+		nLineNo = line
+		strFunc =  getFuncName(pc)
+	}
+	return
+}
+
 //内部格式化输出函数
-func Output(level int, fmtstr string, args ...interface{}) {
+func output(level int, fmtstr string, args ...interface{})  (strFile, strFunc string, nLineNo int) {
 	var inf, code string
 	var colorName string
-
-	if level < loglevel {
-		return
-	}
 
 	strTimeFmt := fmt.Sprintf("%v", time.Now().Format("2006-01-02 15:04:05.000000"))
 	Name := LevelName[level]
@@ -307,9 +313,10 @@ func Output(level int, fmtstr string, args ...interface{}) {
 		inf = fmt.Sprint(args...)
 	}
 
-	pc, file, line, ok := runtime.Caller(2)
-	if ok {
-		code = "<" + path.Base(file) + ":" + strconv.Itoa(line) + " " + GetFuncName(pc) + "()" + ">"
+	strFile, strFunc, nLineNo = getCaller(3)
+	code = "<" + strFile + ":" + strconv.Itoa(nLineNo) + " " +strFunc + "()" + ">"
+	if level < loglevel {
+		return
 	}
 
 	var output string
@@ -323,7 +330,7 @@ func Output(level int, fmtstr string, args ...interface{}) {
 
 	//打印到终端屏幕
 	if console {
-		fmt.Fprintln(colorStdout, output)
+		_, _ = fmt.Fprintln(colorStdout, output)
 	}
 
 	//输出到文件（如果Open函数传入了正确的文件路径）
@@ -342,55 +349,68 @@ func Output(level int, fmtstr string, args ...interface{}) {
 					Error("%s", e)
 					return
 				} else {
-					logurl.CreateFile() //重新创建文件
+					logurl.createFile() //重新创建文件
 				}
 			}
 		}
 
 		logger.Println(Name + " " + code + " " + inf)
 	}
+	return
 }
 
 //输出调试级别信息
-func Debug(fmtstr string, args ...interface{}) *Statistic {
-	Output(LEVEL_DEBUG, fmtstr, args...)
-	return stic
+func Debug(fmtstr string, args ...interface{}) {
+	output(LEVEL_DEBUG, fmtstr, args...)
 }
 
 //输出运行级别信息
-func Info(fmtstr string, args ...interface{}) *Statistic {
-	Output(LEVEL_INFO, fmtstr, args...)
-	return stic
+func Info(fmtstr string, args ...interface{}) {
+	output(LEVEL_INFO, fmtstr, args...)
 }
 
 //输出警告级别信息
-func Warn(fmtstr string, args ...interface{}) *Statistic {
-	Output(LEVEL_WARN, fmtstr, args...)
-	return stic
+func Warn(fmtstr string, args ...interface{}) {
+	output(LEVEL_WARN, fmtstr, args...)
 }
 
 //输出警告级别信息
-func Warning(fmtstr string, args ...interface{}) *Statistic {
-	Output(LEVEL_WARN, fmtstr, args...)
-	return stic
+func Warning(fmtstr string, args ...interface{}) {
+	output(LEVEL_WARN, fmtstr, args...)
 }
 
 //输出错误级别信息
-func Error(fmtstr string, args ...interface{}) *Statistic {
-	Output(LEVEL_ERROR, fmtstr, args...)
-	return stic
+func Error(fmtstr string, args ...interface{}) {
+	output(LEVEL_ERROR, fmtstr, args...)
 }
 
 //输出危险级别信息
-func Fatal(fmtstr string, args ...interface{}) *Statistic {
-	Output(LEVEL_FATAL, fmtstr, args...)
-	return stic
+func Fatal(fmtstr string, args ...interface{}) {
+	output(LEVEL_FATAL, fmtstr, args...)
 }
 
 //输出到空设备
-func Null(fmtstr string, args ...interface{}) *Statistic {
-	return stic
+func Null(fmtstr string, args ...interface{}) {
+
 }
+
+//进入方法（统计）
+func Enter() {
+	output(LEVEL_DEBUG, "enter")
+	stic.enter(getCaller(2))
+}
+
+//离开方法（统计）
+func Leave() {
+
+	if nSpendTime, ok := stic.leave(getCaller(2)); ok {
+
+		output(LEVEL_DEBUG, fmt.Sprintf("leave (%.3f ms)", float64(nSpendTime)/1000))
+	} else {
+		output(LEVEL_DEBUG, "leave")
+	}
+}
+
 
 //打印结构体JSON
 func Json(args ...interface{}) {
@@ -413,7 +433,7 @@ func Json(args ...interface{}) {
 		if typ.Name() == "" {
 			strTypeName = "slice/base type"
 		}
-		Output(LEVEL_JSON, fmt.Sprintf("(%v) %v ", strTypeName, string(data)))
+		output(LEVEL_JSON, fmt.Sprintf("(%v) %v ", strTypeName, string(data)))
 	}
 }
 
@@ -450,7 +470,7 @@ func Struct(args ...interface{}) {
 			strLog += fmt.Sprintf("%v (%v) = <%+v> \n", typ.Name(), typ.Kind(), val.Interface())
 		}
 
-		Output(LEVEL_STRUCT, strLog)
+		output(LEVEL_STRUCT, strLog)
 	}
 }
 
