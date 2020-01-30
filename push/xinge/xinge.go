@@ -1,14 +1,12 @@
 package xinge
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/civet148/gotools/comm/httpx"
 	"github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/push"
-	"io/ioutil"
-	"net/http"
 )
 
 /*
@@ -51,7 +49,6 @@ type XinGe struct {
 	appSecret   string       //信鸽secret
 	isProd      bool         //是否正式环境[仅适用于苹果iOS设备]（true=正式环境 false=测试环境）
 	strActivity string       //安卓通知点击跳转activity
-	httpCli     *http.Client //Http客户端对象
 }
 
 type xingeTime struct {
@@ -215,7 +212,6 @@ func New(args ...interface{}) push.IPush {
 		appSecret:   args[1].(string),
 		isProd:      args[2].(bool),
 		strActivity: strActivity,
-		httpCli:     &http.Client{},
 	}
 }
 
@@ -296,30 +292,34 @@ func (x *XinGe) Push(msg *push.Message) (MsgID string, err error) {
 		return
 	}
 
-	body, _ := json.Marshal(notification)
-	strPushContent := string(body)
-	var respData []byte
-	if respData, err = x.sendRequestWithAuthorization(push.HTTP_METHOD_POST, XINGE_PUSHAPI_URL, strPushContent); err != nil {
+	var response *httpx.Response
+	if response, err = x.sendRequestWithAuthorization(XINGE_PUSHAPI_URL, notification); err != nil {
 		log.Error("%v", err.Error())
 		return
 	}
-	log.Debug("post to [%v] with [%v] got response data = [%s]", XINGE_PUSHAPI_URL, strPushContent, respData)
+	log.Debug("post to [%v] with [%+v] got response data = [%+v]", XINGE_PUSHAPI_URL, notification, response)
 
-	var resp xingeResponse
-	if err = json.Unmarshal(respData, &resp); err != nil {
-		log.Error("unmarshal http response data [%+v] to xingeResponse object error [%v]", string(respData), err.Error())
-		err = fmt.Errorf("%s", respData)
-		return
-	}
-	if resp.RetCode == 0 {
-		MsgID = resp.PushID
-		log.Debug("XINGE push to url [%+v] content [%v] ok, MsgID [%v]", XINGE_PUSHAPI_URL, strPushContent, resp.PushID)
+	if response.StatusCode == 200 {
+		var resp xingeResponse
+
+		if err = json.Unmarshal([]byte(response.Body), &resp); err != nil {
+			log.Error("unmarshal http response data [%+v] to xingeResponse object error [%v]", response.Body, err.Error())
+			err = fmt.Errorf("%s", response.Body)
+			return
+		}
+		if resp.RetCode == 0 {
+			MsgID = resp.PushID
+			log.Debug("XINGE push to url [%+v] content [%+v] ok, MsgID [%v]", XINGE_PUSHAPI_URL, notification, resp.PushID)
+		} else {
+
+			err = fmt.Errorf("%+v", resp)
+			log.Error("XINGE push to url [%+v] content [%+v] failed, response [%+v]", XINGE_PUSHAPI_URL, notification, resp)
+			return
+		}
 	} else {
-
-		err = fmt.Errorf("%+v", resp)
-		log.Error("XINGE push to url [%+v] content [%v] failed, response [%+v]", XINGE_PUSHAPI_URL, strPushContent, resp)
-		return
+		err = fmt.Errorf("%+v", response.Body)
 	}
+
 	return
 }
 
@@ -333,46 +333,17 @@ func (x *XinGe) Debug(enable bool) {
 }
 
 //获取HTTP客户端对象（包含认证信息）
-func (x *XinGe) sendRequestWithAuthorization(strHttpMethod, strUrl string, message interface{}) (resp_data []byte, err error) {
+func (x *XinGe) sendRequestWithAuthorization(strUrl string, message interface{}) (response *httpx.Response, err error) {
 
-	var data []byte
+	c := httpx.NewHttpClient(3)
+	c.Header().SetApplicationJson().SetAuthorization(x.getBase64Authorization())
 
-	if message != nil {
-		switch message.(type) {
-		case string:
-			data = []byte(message.(string))
-		default:
-			data, err = json.Marshal(message)
-			if err != nil {
-				log.Error("message json marshal error [%v]", err.Error())
-				return
-			}
-		}
-	}
-
-	var req *http.Request
-	var resp *http.Response
-
-	authorization := x.getBase64Authorization()
-	if req, err = http.NewRequest(strHttpMethod, strUrl, bytes.NewBuffer(data)); err != nil {
-
-		log.Error("http.NewRequest error [%v]", err.Error())
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", authorization)
-	//log.Debugf("send to http url [%v] with data [%v] ready", strUrl, string(data))
-	if resp, err = x.httpCli.Do(req); err != nil {
-		log.Error("send http request error [%v]", err.Error())
-		return
-	}
-	defer resp.Body.Close()
-	if resp_data, err = ioutil.ReadAll(resp.Body); err != nil {
-		log.Error("ioutil.ReadAll(resp.Body) error [%v]", err.Error())
+	if response, err = c.Post(strUrl, message); err != nil {
+		log.Error("http post error [%v]", err.Error())
 		return
 	}
 
-	log.Debug("[%v] http url [%v] with data [%s] successful, got response [%s]", strHttpMethod, strUrl, data, resp_data)
+	log.Debug("http post url [%v] with message [%+v] successful, got response [%+v]", strUrl, message, response)
 
 	return
 }
