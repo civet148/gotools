@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/civet148/gotools/log"
-	"time"
+	"sync"
 )
 
 /**
@@ -73,9 +73,9 @@ func main() {
 	//strUrl := "file://e:/test.log" //指定日志文件但不指定属性（Windows）
 	//strUrl := "file:///tmp/test.log" //指定日志文件但不指定属性(Linux)
 	//strUrl := "json:///tmp/test.json" //json文件名(Linux)
-	//strUrl := "json://test.json" //json文件名(Windows)
-	//strUrl := "file:///var/log/test.log?log_level=INFO&file_size=50" //文件属性
-	//strUrl := "file://e:/test.log?log_level=WARN&file_size=50"
+	//strUrl := "json://f:/test/test.json" //json文件名(Windows)
+	//strUrl := "file:///var/log/test.log?log_level=INFO&file_size=50" //Linux/Unix文件带属性
+	//strUrl := "file://e:/test.log?log_level=WARN&file_size=50" //Windows文件带属性
 
 	log.Open(strUrl)
 	defer log.Close()
@@ -87,19 +87,20 @@ func main() {
 	log.Error("This is error message")
 	log.Fatal("This is fatal message")
 
-	for i := 0; i < 2; i++ {
+	wg := &sync.WaitGroup{}
+	for i := 0; i < 100; i++ {
 
-		go PrintLog()
+		wg.Add(1)
+		go PrintFuncExecuteTime(i, wg)
 	}
 
+	wg.Wait()
 	log.Leave()
-
-	time.Sleep(3*time.Second)
 }
 
-func PrintLog() {
+func PrintFuncExecuteTime(i int, wg *sync.WaitGroup) {
 
-	log.Enter()  //enter PrintLog function
+	log.Enter("index", i)  //enter PrintLog function
 
 	var ip int32 = 10
 	st1 := testSt{abc: 10086, flt32: 0.58, flt64: 0.96666, ui8: 25, ui32: 10032, i8: 44, i64: 100000000000019, str: "ni hao", slice: []string{"str1", "str2"},
@@ -110,5 +111,6 @@ func PrintLog() {
 	log.Json(st1, st2)
 	log.Struct(st1, st2)
 
-	log.Leave() //leave PrintLog function
+	log.Leave("index", i) //leave PrintLog function
+	wg.Done()
 }

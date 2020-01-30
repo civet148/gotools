@@ -1,4 +1,5 @@
 *.exe
 .idea
+*.log
 /push/.idea
 /log/test/*.log

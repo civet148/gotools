@@ -395,19 +395,24 @@ func Null(fmtstr string, args ...interface{}) {
 }
 
 //进入方法（统计）
-func Enter() {
-	output(LEVEL_DEBUG, "enter")
+func Enter(args...interface{}) {
+	output(LEVEL_DEBUG, "enter ", args...)
 	stic.enter(getCaller(2))
 }
 
 //离开方法（统计）
-func Leave() {
+func Leave(args...interface{}) {
 
 	if nSpendTime, ok := stic.leave(getCaller(2)); ok {
 
-		output(LEVEL_DEBUG, fmt.Sprintf("leave (%.3f ms)", float64(nSpendTime)/1000))
+		nSpend := nSpendTime/1e6
+		nSpendHour := nSpend/3600
+		nSpendMin := (nSpend%3600)/60
+		nSpendSec := (nSpend%3600)%60
+		nSpendMS := nSpendTime-(nSpend*1e6) //left micro seconds
+		output(LEVEL_DEBUG, fmt.Sprintf("leave (%vh %vm %vs %.3fms) ", nSpendHour, nSpendMin, nSpendSec, float32(nSpendMS)/1000), args...)
 	} else {
-		output(LEVEL_DEBUG, "leave")
+		output(LEVEL_DEBUG, "leave ", args...)
 	}
 }
 
