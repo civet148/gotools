@@ -1,7 +1,9 @@
 package log
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/civet148/gotools/comm"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -9,15 +11,18 @@ import (
 )
 
 /*
-  统计每个文件的方法被调用的总次数、总调用时间、平均执行时间（毫秒）
+  统计: 每个文件的方法被调用的总次数、总调用时间、平均执行时间（微秒）
+  statistic: every function called total counts, executed total time, average execute time on micro seconds
 */
 
 const (
-	EXPIRE_TIME_MICRO_SECONDS = 24*3600*1000000
+	EXPIRE_TIME_MICRO_SECONDS = 24 * 3600 * 1e6
 )
 
 type statistic struct {
 	callers sync.Map
+	results sync.Map
+	mutex sync.Mutex
 }
 
 type caller struct {
@@ -27,14 +32,36 @@ type caller struct {
 	FuncName   string `json:"func_name"`
 	EnterTime  int64  `json:"enter_time"`
 	LeaveTime  int64  `json:"leave_time"`
-	SpendTime  int    `json:"spend_time"`
+	SpendTime  int64  `json:"spend_time"`
 	ExpireTime int64  `json:"expire_time"`
+	CallOk     bool   `json:"call_ok"`
+}
+
+type result struct {
+	FileName   string `json:"file_name"`   //code file of function
+	LineNo     int    `json:"line_no"`     //line no of function
+	FuncName   string `json:"func_name"`   //function name
+	CallCount  int64  `json:"call_count"`  //call total times
+	ErrorCount int64  `json:"error_count"` //call error times
+	ExeTime    int64  `json:"exe_time"`    //micro seconds
+	AvgTime    int64  `json:"avg_time"`    //micro seconds
+	CreateTime int64  `json:"create_time"` //unix timestamp on seconds
+	UpdateTime int64  `json:"update_time"` //unix timestamp on seconds
+}
+
+type summary struct {
+	TimeUnit string    `json:"time_unit"`
+	Results  []*result `json:"statistics"`
 }
 
 //create a new statistic object
 func newStatistic() *statistic {
 	return &statistic{
 	}
+}
+
+func getUnixSecond() int64 {
+	return time.Now().Unix()
 }
 
 func getMilliSec() int64 {
@@ -44,12 +71,31 @@ func getMilliSec() int64 {
 
 func getMicroSec() int64 {
 
-	return time.Now().UnixNano() / 1e3 //micro seconds
+	return time.Now().UnixNano() / 1e3 //microseconds
+}
+
+func getDecimal3(v float64) float64 {
+
+	return comm.Round(v, 3)
+}
+
+func getSpendTime(microseconds int64) (h, m, s int, ms float32) {
+	nSpend := microseconds / 1e6
+	h = int(nSpend / 3600)
+	m = int((nSpend % 3600) / 60)
+	s = int((nSpend % 3600) % 60)
+	ms = float32(microseconds-(nSpend*1e6)) / 1000
+	return
 }
 
 func getCallerStoreKey(strFile, strFunc string) string {
 
 	return fmt.Sprintf("%v %v %v", getRoutine(), strFile, strFunc)
+}
+
+func getResultStoreKey(strFile, strFunc string) string {
+
+	return fmt.Sprintf("%v:%v", strFile, strFunc)
 }
 
 func getRoutine() string {
@@ -68,43 +114,99 @@ func (s *statistic) enter(strFile, strFunc string, nLineNo int) {
 	now64 := getMicroSec()
 
 	c := caller{
-		FileName:  strFile,
-		LineNo:    nLineNo,
-		FuncName:  strFunc,
-		EnterTime: now64,
-		LeaveTime: 0,
-		SpendTime: 0,
-		ExpireTime: now64+EXPIRE_TIME_MICRO_SECONDS,
+		FileName:   strFile,
+		LineNo:     nLineNo,
+		FuncName:   strFunc,
+		EnterTime:  now64,
+		LeaveTime:  0,
+		SpendTime:  0,
+		ExpireTime: now64 + EXPIRE_TIME_MICRO_SECONDS,
+		CallOk:     true,
 	}
 	c.KeyName = getCallerStoreKey(strFile, strFunc)
 	s.callers.Store(c.KeyName, &c)
+
 	//Debug("caller store ok")
+	strResultKey := getResultStoreKey(strFile, strFunc)
+	var r *result
+	if _, ok := s.results.Load(strResultKey); !ok {
+		r = &result{
+			FileName:   strFile,
+			LineNo:     nLineNo,
+			FuncName:   strFunc,
+			CallCount:  0,
+			ErrorCount: 0,
+			ExeTime:    0,
+			AvgTime:    0,
+			CreateTime: getUnixSecond(),
+			UpdateTime: getUnixSecond(),
+		}
+		s.results.Store(strResultKey, r)
+	}
 }
 
 //退出方法(leave function)
-func (s *statistic) leave(strFile, strFunc string, nLineNo int) (int, bool) {
+func (s *statistic) leave(strFile, strFunc string, nLineNo int) (int64, bool) {
 
 	now64 := getMicroSec()
+	strCallerKey := getCallerStoreKey(strFile, strFunc)
+	strResultKey := getResultStoreKey(strFile, strFunc)
+
+	if v, ok := s.callers.Load(strCallerKey); ok {
+
+		s.callers.Delete(strCallerKey)
+		c := v.(*caller)
+
+		s.mutex.Lock() //lock
+		c.LeaveTime = now64
+		c.SpendTime = c.LeaveTime - c.EnterTime
+
+		var r *result
+		if v2, ok2 := s.results.Load(strResultKey); ok2 {
+
+			r = v2.(*result)
+			r.CallCount++
+			if c.SpendTime > 0 {
+				r.ExeTime += c.SpendTime
+				r.AvgTime = r.ExeTime / r.CallCount
+			}
+			if !c.CallOk {
+				r.ErrorCount++
+			}
+			r.UpdateTime = getUnixSecond()
+		}
+		s.mutex.Unlock() //unlock
+		//Json("result: ", r)
+		return c.SpendTime, ok
+	}
+
+	return 0, false
+}
+
+//统计error次数(incr error counts)
+func (s *statistic) error(strFile, strFunc string, nLineNo int) {
 	strKey := getCallerStoreKey(strFile, strFunc)
 	if v, ok := s.callers.Load(strKey); ok {
 
-		s.callers.Delete(strKey)
 		c := v.(*caller)
-		c.LeaveTime = now64
-		c.SpendTime = int(c.LeaveTime - c.EnterTime)
-		Json("leave caller", c)
-		return c.SpendTime, ok
-	} else {
-		//没有找到调用log.Enter记录，需注意log.Enter和log.Leave必须同时在一个方法中使用
-		Warn("[zh_CN] 请在%v中调用log.Leave之前调用log.Enter [en_US] please call log.Enter before log.Leave in %v function.", strFunc, strFunc)
-		//panic(fmt.Sprintf("[en_US] not called log.Enter before log.Leave in [%v] function ? Key [%v]", strFunc, strKey)) //not called Enter before call Leave ?
+		c.CallOk = false
 	}
-
-	return -1, false
 }
 
 //统计信息汇总(statistic summary)
-func (s *statistic) summary(args ...interface{}) (strSummary string) {
+func (s *statistic) summary(args ...interface{}) string {
 
-	return
+	var summ = summary{
+		TimeUnit: "micro seconds",
+	}
+	s.results.Range(
+		func(k, v interface{}) bool {
+
+			summ.Results = append(summ.Results, v.(*result))
+			return true
+		},
+	)
+
+	data, _ := json.MarshalIndent(summ, "", "\t")
+	return string(data)
 }
