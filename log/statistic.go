@@ -101,7 +101,10 @@ func getSpendTime(microseconds int64) (h, m, s int, ms float32) {
 			h = int(nSpend / 3600)
 			m = int((nSpend % 3600) / 60)
 			s = int((nSpend % 3600) % 60)
-			ms = float32(microseconds-(nSpend*1e6)) / 1000
+			rem := microseconds-(nSpend*1e6)
+			if  rem > 0 {
+				ms = float32(rem) / 1000
+			}
 		}
 	}
 
