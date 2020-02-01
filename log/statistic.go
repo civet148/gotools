@@ -59,6 +59,15 @@ type summary struct {
 	Results  []*result `json:"statistics"`
 }
 
+
+var stic *statistic //数据统计对象
+
+func init() {
+
+	stic = newStatistic()
+	go checkExpire(stic)
+}
+
 //create a new statistic object
 func newStatistic() *statistic {
 	return &statistic{
@@ -67,6 +76,11 @@ func newStatistic() *statistic {
 
 func getUnixSecond() int64 {
 	return time.Now().Unix()
+}
+
+func getDatetime() string {
+
+	return time.Now().Format("2006-01-02 15:04:05")
 }
 
 func getMilliSec() int64 {
@@ -225,4 +239,24 @@ func (s *statistic) summary(args...interface{}) string {
 
 	data, _ := json.MarshalIndent(summ, "", "\t")
 	return string(data)
+}
+
+func checkExpire(stic *statistic) {
+
+	for {
+		stic.callers.Range (
+			func (k, v interface{}) bool {
+
+				now64 := getMicroSec()
+
+				c := v.(*caller)
+				if now64 > c.ExpireTime {
+					Warn("caller key [%v] expired at [%v]", k.(string), getDatetime())
+					stic.callers.Delete(k)
+				}
+				return true
+			},
+			)
+		time.Sleep(time.Hour)
+	}
 }

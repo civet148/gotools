@@ -90,12 +90,11 @@ var jsonExample = `{
       "file_size":"50"
    }`
 
-var stic *statistic //数据统计对象
+
 var colorStdout = colorable.NewColorableStdout()
 
 func init() {
 	filesize = 50 //MB
-	stic = newStatistic()
 }
 
 func Open(strUrl string) bool {
