@@ -19,6 +19,11 @@ const (
 	EXPIRE_TIME_MICRO_SECONDS = 24 * 3600 * 1e6
 )
 
+var (
+	FUNCNAME_ALL = "all"
+	FUNCNAME_NIL = ""
+)
+
 type statistic struct {
 	callers sync.Map
 	results sync.Map
@@ -194,15 +199,26 @@ func (s *statistic) error(strFile, strFunc string, nLineNo int) {
 }
 
 //统计信息汇总(statistic summary)
-func (s *statistic) summary(args ...interface{}) string {
+func (s *statistic) summary(args...interface{}) string {
+
+	var strFuncName string
+	if len(args) == 0 {
+		strFuncName = FUNCNAME_NIL
+	} else {
+		strFuncName = args[0].(string)
+	}
 
 	var summ = summary{
 		TimeUnit: "micro seconds",
 	}
+
 	s.results.Range(
 		func(k, v interface{}) bool {
 
-			summ.Results = append(summ.Results, v.(*result))
+			r := v.(*result)
+			if strFuncName == FUNCNAME_ALL || strFuncName == FUNCNAME_NIL || strings.Contains(r.FuncName, strFuncName) {
+				summ.Results = append(summ.Results, v.(*result))
+			}
 			return true
 		},
 	)

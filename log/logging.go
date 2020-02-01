@@ -401,15 +401,17 @@ func Enter(args...interface{}) {
 }
 
 //离开方法（统计）
-func Leave(args...interface{}) {
+//返回执行时间：h 时 m 分 s 秒 ms 毫秒 （必须先调用Enter方法才能正确统计执行时间）
+func Leave(args...interface{}) (h, m, s int, ms float32){
 
 	if nSpendTime, ok := stic.leave(getCaller(2)); ok {
 
 		h, m, s, ms := getSpendTime(nSpendTime)
 		output(LEVEL_DEBUG, fmt.Sprintf("leave (%vh %vm %vs %.3fms) ", h, m, s, ms), args...)
 	} else {
-		output(LEVEL_DEBUG, fmt.Sprintf("leave (not call log.Enter or expire at %v seconds) ", EXPIRE_TIME_MICRO_SECONDS/1e6), args...)
+		output(LEVEL_DEBUG, fmt.Sprintf("leave (not call log.Enter or expired in 24 hours) "), args...)
 	}
+	return
 }
 
 
@@ -427,6 +429,7 @@ func Json(args ...interface{}) {
 	output(LEVEL_JSON, strOutput+"\n...................................................\n")
 }
 
+//args: a string of function name or nil for all
 func Summary(args...interface{}) string {
 	return stic.summary(args...)
 }
