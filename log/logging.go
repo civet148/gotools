@@ -90,12 +90,11 @@ var jsonExample = `{
       "file_size":"50"
    }`
 
-var stic *statistic //数据统计对象
+
 var colorStdout = colorable.NewColorableStdout()
 
 func init() {
 	filesize = 50 //MB
-	stic = newStatistic()
 }
 
 func Open(strUrl string) bool {
@@ -381,12 +380,12 @@ func Warning(fmtstr string, args ...interface{}) {
 
 //输出错误级别信息
 func Error(fmtstr string, args ...interface{}) {
-	output(LEVEL_ERROR, fmtstr, args...)
+	stic.error(output(LEVEL_ERROR, fmtstr, args...))
 }
 
 //输出危险级别信息
 func Fatal(fmtstr string, args ...interface{}) {
-	output(LEVEL_FATAL, fmtstr, args...)
+	stic.error(output(LEVEL_FATAL, fmtstr, args...))
 }
 
 //输出到空设备
@@ -401,57 +400,41 @@ func Enter(args...interface{}) {
 }
 
 //离开方法（统计）
-func Leave(args...interface{}) {
+//返回执行时间：h 时 m 分 s 秒 ms 毫秒 （必须先调用Enter方法才能正确统计执行时间）
+func Leave(args...interface{}) (h, m, s int, ms float32){
 
 	if nSpendTime, ok := stic.leave(getCaller(2)); ok {
 
-		nSpend := nSpendTime/1e6
-		nSpendHour := nSpend/3600
-		nSpendMin := (nSpend%3600)/60
-		nSpendSec := (nSpend%3600)%60
-		nSpendMS := nSpendTime-(nSpend*1e6) //left micro seconds
-		output(LEVEL_DEBUG, fmt.Sprintf("leave (%vh %vm %vs %.3fms) ", nSpendHour, nSpendMin, nSpendSec, float32(nSpendMS)/1000), args...)
+		h, m, s, ms := getSpendTime(nSpendTime)
+		output(LEVEL_DEBUG, fmt.Sprintf("leave (%vh %vm %vs %.3fms) ", h, m, s, ms), args...)
 	} else {
-		output(LEVEL_DEBUG, "leave ", args...)
+		output(LEVEL_DEBUG, fmt.Sprintf("leave (not call log.Enter or expired in 24 hours) "), args...)
 	}
+	return
 }
 
 
 //打印结构体JSON
 func Json(args ...interface{}) {
 
-	if !console {
-		return
+	var strOutput string
+
+	for _, v := range args {
+
+		data, _ := json.MarshalIndent(v, "", "\t")
+		strOutput += "\n...................................................\n" + string(data)
 	}
 
-	for i := range args {
-		arg := args[i]
-		typ := reflect.TypeOf(arg)
-		val := reflect.ValueOf(arg)
-		if typ.Kind() == reflect.Ptr { //如果是指针类型则先转为对象
-
-			typ = typ.Elem()
-			val = val.Elem()
-		}
-		data, _ := json.MarshalIndent(arg, "", "\t")
-		strTypeName := ""
-		if typ.Name() == "" {
-			strTypeName = "slice/base type"
-		}
-		output(LEVEL_JSON, fmt.Sprintf("(%v) %v ", strTypeName, string(data)))
-	}
+	output(LEVEL_JSON, strOutput+"\n...................................................\n")
 }
 
+//args: a string of function name or nil for all
 func Summary(args...interface{}) string {
 	return stic.summary(args...)
 }
 
 //打印结构体
 func Struct(args ...interface{}) {
-
-	if !console {
-		return
-	}
 
 	var strLog string
 	for i := range args {
