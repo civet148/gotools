@@ -3,7 +3,6 @@ package log
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/civet148/gotools/comm"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -91,11 +90,6 @@ func getMilliSec() int64 {
 func getMicroSec() int64 {
 
 	return time.Now().UnixNano() / 1e3 //microseconds
-}
-
-func getDecimal3(v float64) float64 {
-
-	return comm.Round(v, 3)
 }
 
 func getSpendTime(microseconds int64) (h, m, s int, ms float32) {
