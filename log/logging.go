@@ -312,7 +312,7 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 	}
 
 	strFile, strFunc, nLineNo = getCaller(3)
-	code = "<" + strFile + ":" + strconv.Itoa(nLineNo) + " " + strFunc + "() " + getRoutine() + ">"
+	code = "<" + getRoutine() + " " + strFile + ":" + strconv.Itoa(nLineNo) + " " + strFunc + "()" + ">"
 	if level < loglevel {
 		return
 	}

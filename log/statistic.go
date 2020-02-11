@@ -42,15 +42,17 @@ type caller struct {
 }
 
 type result struct {
-	FileName   string `json:"file_name"`   //code file of function
-	LineNo     int    `json:"line_no"`     //line no of function
-	FuncName   string `json:"func_name"`   //function name
-	CallCount  int64  `json:"call_count"`  //call total times
-	ErrorCount int64  `json:"error_count"` //call error times
-	ExeTime    int64  `json:"exe_time"`    //micro seconds
-	AvgTime    int64  `json:"avg_time"`    //micro seconds
-	CreateTime int64  `json:"create_time"` //unix timestamp on seconds
-	UpdateTime int64  `json:"update_time"` //unix timestamp on seconds
+	FileName      string `json:"file_name"`       //code file of function
+	LineNo        int    `json:"line_no"`         //line no of function
+	FuncName      string `json:"func_name"`       //function name
+	CallCount     int64  `json:"call_count"`      //call total times
+	ErrorCount    int64  `json:"error_count"`     //call error times
+	ExeTime       int64  `json:"exe_time"`        //micro seconds
+	ExeTimeString string `json:"exe_time_string"` //time string format
+	AvgTime       int64  `json:"avg_time"`        //micro seconds
+	AvgTimeString string `json:"avg_time_string"` //time string format
+	CreateTime    int64  `json:"create_time"`     //unix timestamp on seconds
+	UpdateTime    int64  `json:"update_time"`     //unix timestamp on seconds
 }
 
 type summary struct {
@@ -103,6 +105,8 @@ func getSpendTime(microseconds int64) (h, m, s int, ms float32) {
 			if rem > 0 {
 				ms = float32(rem) / 1000
 			}
+		} else {
+			ms = float32(microseconds) / 1000
 		}
 	}
 
@@ -194,6 +198,10 @@ func (s *statistic) leave(strFile, strFunc string, nLineNo int) (int64, bool) {
 			if !c.CallOk {
 				r.ErrorCount++
 			}
+			h, m, s, ms := getSpendTime(r.ExeTime)
+			r.ExeTimeString = fmt.Sprintf("%vh %vm %vs %.3fms", h, m, s, ms)
+			h, m, s, ms = getSpendTime(r.AvgTime)
+			r.AvgTimeString = fmt.Sprintf("%vh %vm %vs %.3fms", h, m, s, ms)
 			r.UpdateTime = getUnixSecond()
 		}
 		s.mutex.Unlock() //unlock
