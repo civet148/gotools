@@ -42,17 +42,17 @@ type caller struct {
 }
 
 type result struct {
-	FileName      string `json:"file_name"`       //code file of function
-	LineNo        int    `json:"line_no"`         //line no of function
-	FuncName      string `json:"func_name"`       //function name
-	CallCount     int64  `json:"call_count"`      //call total times
-	ErrorCount    int64  `json:"error_count"`     //call error times
-	ExeTime       int64  `json:"exe_time"`        //micro seconds
-	ExeTimeString string `json:"exe_time_string"` //time string format
-	AvgTime       int64  `json:"avg_time"`        //micro seconds
-	AvgTimeString string `json:"avg_time_string"` //time string format
-	CreateTime    int64  `json:"create_time"`     //unix timestamp on seconds
-	UpdateTime    int64  `json:"update_time"`     //unix timestamp on seconds
+	FileName      string `json:"file_name"`       //code file of function [代码文件名]
+	LineNo        int    `json:"line_no"`         //line no of function [行号]
+	FuncName      string `json:"func_name"`       //function name [方法名称]
+	CallCount     int64  `json:"call_count"`      //call total times [调用次数]
+	ErrorCount    int64  `json:"error_count"`     //call error times [错误次数]
+	ExeTime       int64  `json:"exe_time"`        //micro seconds [执行总时间]
+	ExeTimeString string `json:"exe_time_string"` //time string format [执行总时间-日期字符串格式]
+	AvgTime       int64  `json:"avg_time"`        //micro seconds [平均执行时间]
+	AvgTimeString string `json:"avg_time_string"` //time string format [平均执行时间-日期字符串格式]
+	CreateTime    int64  `json:"create_time"`     //unix timestamp on seconds [计时开始时间]
+	UpdateTime    int64  `json:"update_time"`     //unix timestamp on seconds [计时更新时间]
 }
 
 type summary struct {
