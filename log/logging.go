@@ -457,8 +457,8 @@ func Json(args ...interface{}) {
 }
 
 //args: a string of function name or nil for all
-func Summary(args ...interface{}) string {
-	return stic.summary(args...)
+func Report(args ...interface{}) string {
+	return stic.report(args...)
 }
 
 //打印结构体

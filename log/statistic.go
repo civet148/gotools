@@ -223,7 +223,7 @@ func (s *statistic) error(strFile, strFunc string, nLineNo int) {
 }
 
 //统计信息汇总(statistic summary)
-func (s *statistic) summary(args ...interface{}) string {
+func (s *statistic) report(args ...interface{}) string {
 
 	var strFuncName string
 	if len(args) == 0 {
