@@ -4,11 +4,13 @@ go 1.13
 
 require (
 	github.com/Shopify/sarama v1.24.1 // indirect
+	github.com/astaxie/beego v1.12.0 // indirect
 	github.com/bsm/sarama-cluster v2.1.15+incompatible
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/eclipse/paho.mqtt.golang v1.2.0
 	github.com/garyburd/redigo v1.6.0
 	github.com/google/uuid v1.1.1 // indirect
+	github.com/jmoiron/sqlx v1.2.0 // indirect
 	github.com/json-iterator/go v1.1.9 // indirect
 	github.com/klauspost/cpuid v1.2.2 // indirect
 	github.com/mattn/go-colorable v0.1.4

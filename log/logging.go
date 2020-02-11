@@ -90,7 +90,6 @@ var jsonExample = `{
       "file_size":"50"
    }`
 
-
 var colorStdout = colorable.NewColorableStdout()
 
 func init() {
@@ -279,31 +278,31 @@ func getCaller(skip int) (strFile, strFunc string, nLineNo int) {
 	if ok {
 		strFile = path.Base(file)
 		nLineNo = line
-		strFunc =  getFuncName(pc)
+		strFunc = getFuncName(pc)
 	}
 	return
 }
 
 //内部格式化输出函数
-func output(level int, fmtstr string, args ...interface{})  (strFile, strFunc string, nLineNo int) {
+func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc string, nLineNo int) {
 	var inf, code string
-	var colorName string
+	var colorTimeName string
 
 	strTimeFmt := fmt.Sprintf("%v", time.Now().Format("2006-01-02 15:04:05.000000"))
 	Name := LevelName[level]
 	switch level {
 	case LEVEL_DEBUG:
-		colorName = fmt.Sprintf("\033[34m%v %s", strTimeFmt, Name)
+		colorTimeName = fmt.Sprintf("\033[34m%v %s", strTimeFmt, Name)
 	case LEVEL_INFO:
-		colorName = fmt.Sprintf("\033[32m%v %s", strTimeFmt, Name)
+		colorTimeName = fmt.Sprintf("\033[32m%v %s", strTimeFmt, Name)
 	case LEVEL_WARN:
-		colorName = fmt.Sprintf("\033[33m%v %s", strTimeFmt, Name)
+		colorTimeName = fmt.Sprintf("\033[33m%v %s", strTimeFmt, Name)
 	case LEVEL_ERROR:
-		colorName = fmt.Sprintf("\033[31m%v %s", strTimeFmt, Name)
+		colorTimeName = fmt.Sprintf("\033[31m%v %s", strTimeFmt, Name)
 	case LEVEL_FATAL:
-		colorName = fmt.Sprintf("\033[35m%v %s", strTimeFmt, Name)
+		colorTimeName = fmt.Sprintf("\033[35m%v %s", strTimeFmt, Name)
 	default:
-		colorName = fmt.Sprintf("\033[34m%v %s", strTimeFmt, Name)
+		colorTimeName = fmt.Sprintf("\033[34m%v %s", strTimeFmt, Name)
 	}
 
 	if fmtstr != "" {
@@ -313,7 +312,7 @@ func output(level int, fmtstr string, args ...interface{})  (strFile, strFunc st
 	}
 
 	strFile, strFunc, nLineNo = getCaller(3)
-	code = "<" + strFile + ":" + strconv.Itoa(nLineNo) + " " +strFunc + "()" + ">"
+	code = "<" + strFile + ":" + strconv.Itoa(nLineNo) + " " + strFunc + "() " + getRoutine() + ">"
 	if level < loglevel {
 		return
 	}
@@ -324,7 +323,7 @@ func output(level int, fmtstr string, args ...interface{})  (strFile, strFunc st
 	//case "windows": //Windows终端不支持颜色显示
 	//output = time.Now().Format("2006-01-02 15:04:05") + " " + Name + " " + code + " " + inf
 	default: //Unix类终端支持颜色显示
-		output = "\033[1m" + colorName + " " + code + "\033[0m " + inf
+		output = "\033[1m" + colorTimeName + " " + code + "\033[0m " + inf
 	}
 
 	//打印到终端屏幕
@@ -388,20 +387,50 @@ func Fatal(fmtstr string, args ...interface{}) {
 	stic.error(output(LEVEL_FATAL, fmtstr, args...))
 }
 
+//输出调试级别信息
+func Debugf(fmtstr string, args ...interface{}) {
+	output(LEVEL_DEBUG, fmtstr, args...)
+}
+
+//输出运行级别信息
+func Infof(fmtstr string, args ...interface{}) {
+	output(LEVEL_INFO, fmtstr, args...)
+}
+
+//输出警告级别信息
+func Warnf(fmtstr string, args ...interface{}) {
+	output(LEVEL_WARN, fmtstr, args...)
+}
+
+//输出警告级别信息
+func Warningf(fmtstr string, args ...interface{}) {
+	output(LEVEL_WARN, fmtstr, args...)
+}
+
+//输出错误级别信息
+func Errorf(fmtstr string, args ...interface{}) {
+	stic.error(output(LEVEL_ERROR, fmtstr, args...))
+}
+
+//输出危险级别信息
+func Fatalf(fmtstr string, args ...interface{}) {
+	stic.error(output(LEVEL_FATAL, fmtstr, args...))
+}
+
 //输出到空设备
 func Null(fmtstr string, args ...interface{}) {
 
 }
 
 //进入方法（统计）
-func Enter(args...interface{}) {
+func Enter(args ...interface{}) {
 	output(LEVEL_DEBUG, "enter ", args...)
 	stic.enter(getCaller(2))
 }
 
 //离开方法（统计）
 //返回执行时间：h 时 m 分 s 秒 ms 毫秒 （必须先调用Enter方法才能正确统计执行时间）
-func Leave(args...interface{}) (h, m, s int, ms float32){
+func Leave(args ...interface{}) (h, m, s int, ms float32) {
 
 	if nSpendTime, ok := stic.leave(getCaller(2)); ok {
 
@@ -412,7 +441,6 @@ func Leave(args...interface{}) (h, m, s int, ms float32){
 	}
 	return
 }
-
 
 //打印结构体JSON
 func Json(args ...interface{}) {
@@ -429,7 +457,7 @@ func Json(args ...interface{}) {
 }
 
 //args: a string of function name or nil for all
-func Summary(args...interface{}) string {
+func Summary(args ...interface{}) string {
 	return stic.summary(args...)
 }
 
