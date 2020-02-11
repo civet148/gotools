@@ -99,7 +99,7 @@ func main() {
 	log.Leave()
 
 	//打印方法执行调用次数、总时间、平均时间和错误次数
-	log.Info("summary: %v", log.Summary())
+	log.Info("report summary: %v", log.Report())
 }
 
 func PrintFuncExecuteTime(i int, wg *sync.WaitGroup) {
