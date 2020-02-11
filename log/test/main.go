@@ -88,7 +88,7 @@ func main() {
 	log.Fatal("This is fatal message")
 
 	wg := &sync.WaitGroup{}
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1; i++ {
 
 		wg.Add(1)
 		go PrintFuncExecuteTime(i, wg)
@@ -104,28 +104,27 @@ func main() {
 
 func PrintFuncExecuteTime(i int, wg *sync.WaitGroup) {
 
-	log.Enter("index", i)  //enter PrintLog function (start statistic)
+	log.Enter("index", i) //enter PrintLog function (start statistic)
 
 	var ip int32 = 10
 	st1 := testSt{
-		flt32: 0.58,
-		flt64: 0.96666,
-		ui8: 25,
-		ui32: 10032,
-		i8: 44,
-		i64: 100000000000019,
-		str: "hello...",
-		slice: []string{"str1", "str2"},
-		MyInt: 1,
-		MyFloat64: 2.00,
-		ip: &ip,
-		MySubSt: TestSubSt{SubInt: 1, SubStr: "My sub str"},
+		flt32:      0.58,
+		flt64:      0.96666,
+		ui8:        25,
+		ui32:       10032,
+		i8:         44,
+		i64:        100000000000019,
+		str:        "hello...",
+		slice:      []string{"str1", "str2"},
+		MyInt:      1,
+		MyFloat64:  2.00,
+		ip:         &ip,
+		MySubSt:    TestSubSt{SubInt: 1, SubStr: "My sub str"},
 		MySubStPtr: &TestSubSt{SubInt: 19, SubStr: "MySubStPtr", sst: &SubSubSt{Name: "I'm subsubst object"}}}
 
 	st2 := &testSt{MyInt: 2, MyFloat64: 4.00, abc: 9999}
 	log.Json(st1, st2)
 	//log.Struct(st1, st2)
-
 
 	log.Leave("index", i) //leave PrintLog function (end statistic)
 	wg.Done()

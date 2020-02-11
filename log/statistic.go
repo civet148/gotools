@@ -26,7 +26,7 @@ var (
 type statistic struct {
 	callers sync.Map
 	results sync.Map
-	mutex sync.Mutex
+	mutex   sync.Mutex
 }
 
 type caller struct {
@@ -58,7 +58,6 @@ type summary struct {
 	Results  []*result `json:"statistics"`
 }
 
-
 var stic *statistic //数据统计对象
 
 func init() {
@@ -69,8 +68,7 @@ func init() {
 
 //create a new statistic object
 func newStatistic() *statistic {
-	return &statistic{
-	}
+	return &statistic{}
 }
 
 func getUnixSecond() int64 {
@@ -101,8 +99,8 @@ func getSpendTime(microseconds int64) (h, m, s int, ms float32) {
 			h = int(nSpend / 3600)
 			m = int((nSpend % 3600) / 60)
 			s = int((nSpend % 3600) % 60)
-			rem := microseconds-(nSpend*1e6)
-			if  rem > 0 {
+			rem := microseconds - (nSpend * 1e6)
+			if rem > 0 {
 				ms = float32(rem) / 1000
 			}
 		}
@@ -124,7 +122,7 @@ func getResultStoreKey(strFile, strFunc string) string {
 func getRoutine() string {
 
 	strStack := string(debug.Stack())
-	nIdx := strings.IndexAny(strStack, "\r\n")
+	nIdx := strings.IndexAny(strStack, ":\r\n")
 	if nIdx > 0 {
 		return strStack[:nIdx]
 	}
@@ -217,7 +215,7 @@ func (s *statistic) error(strFile, strFunc string, nLineNo int) {
 }
 
 //统计信息汇总(statistic summary)
-func (s *statistic) summary(args...interface{}) string {
+func (s *statistic) summary(args ...interface{}) string {
 
 	var strFuncName string
 	if len(args) == 0 {
@@ -248,8 +246,8 @@ func (s *statistic) summary(args...interface{}) string {
 func checkExpire(stic *statistic) {
 
 	for {
-		stic.callers.Range (
-			func (k, v interface{}) bool {
+		stic.callers.Range(
+			func(k, v interface{}) bool {
 
 				now64 := getMicroSec()
 
@@ -260,7 +258,7 @@ func checkExpire(stic *statistic) {
 				}
 				return true
 			},
-			)
+		)
 		time.Sleep(time.Hour)
 	}
 }
