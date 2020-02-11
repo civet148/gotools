@@ -88,11 +88,11 @@ func main() {
 	log.Fatal("This is fatal message")
 
 	wg := &sync.WaitGroup{}
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 1000; i++ {
 
 		wg.Add(1)
-		go PrintFuncExecuteTime(i, wg)
-		//PrintFuncExecuteTime(i, wg)
+		//go PrintFuncExecuteTime(i, wg)
+		PrintFuncExecuteTime(i, wg)
 	}
 
 	wg.Wait()
