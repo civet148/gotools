@@ -19,13 +19,13 @@ import (
 var LevelName = []string{"[DEBUG]", "[INFO]", "[WARN]", "[ERROR]", "[FATAL]", "[JSON]", "[STRUCT]"}
 
 const (
+	LEVEL_JSON   = 0
+	LEVEL_STRUCT = 0
 	LEVEL_DEBUG  = 0
 	LEVEL_INFO   = 1
 	LEVEL_WARN   = 2
 	LEVEL_ERROR  = 3
 	LEVEL_FATAL  = 4
-	LEVEL_JSON   = 5
-	LEVEL_STRUCT = 6
 )
 
 type LogContent struct {
@@ -51,13 +51,14 @@ type LogUrl struct {
 }
 
 //全局变量
-var logfile *os.File   //日志文件对象
-var logger *log.Logger //日志输出对象
-var logurl LogUrl      //URL解析对象
-var loglevel int       //文件日志输出级别
-var filepath string    //文件日志路径
-var filesize int       //文件日志分割大小(MB)
-var console = true     //开启/关闭终端屏幕输出
+var logFile *os.File    //日志文件对象
+var logger *log.Logger  //日志输出对象
+var logUrl LogUrl       //URL解析对象
+var logLevel int        //文件日志输出级别
+var filePath string     //文件日志路径
+var fileSize int        //文件日志分割大小(MB)
+var maxBackups int = 31 //文件最大分割数
+var console = true      //开启/关闭终端屏幕输出
 
 /**  打开日志
 * 1. 通过参数直接指定日志文件、输出级别(DEBUG,INFO,WARN,ERROR, FATAL)和属性
@@ -93,7 +94,7 @@ var jsonExample = `{
 var colorStdout = colorable.NewColorableStdout()
 
 func init() {
-	filesize = 50 //MB
+	fileSize = 50 //MB
 }
 
 func Open(strUrl string) bool {
@@ -104,25 +105,25 @@ func Open(strUrl string) bool {
 		return false
 	}
 
-	err := logurl.parseUrl(strUrl)
+	err := logUrl.parseUrl(strUrl)
 	if err != nil {
 		Error("%s", err)
 		return false
 	}
 
-	if logurl.Scheme == "json" { //以 'json://' 开头的URL
+	if logUrl.Scheme == "json" { //以 'json://' 开头的URL
 
-		err = logurl.readFromJson() //从JSON配置文件读取
+		err = logUrl.readFromJson() //从JSON配置文件读取
 		if err != nil {
 			Error("%s", err)
 			return false
 		}
 
-	} else if logurl.Scheme == "file" || logurl.Scheme == "" { //以 'file://' 开头的URL或者没有协议名
+	} else if logUrl.Scheme == "file" || logUrl.Scheme == "" { //以 'file://' 开头的URL或者没有协议名
 
-		return logurl.createFile() //创建文件
+		return logUrl.createFile() //创建文件
 	} else {
-		Error("Unknown scheme [%s]", logurl.Scheme)
+		Error("Unknown scheme [%s]", logUrl.Scheme)
 	}
 
 	return true
@@ -130,14 +131,14 @@ func Open(strUrl string) bool {
 
 //关闭日志
 func Close() {
-	if logfile != nil {
+	if logFile != nil {
 
-		err := logfile.Close()
+		err := logFile.Close()
 		if err != nil {
 			Error("%s", err)
 			return
 		}
-		logfile = nil
+		logFile = nil
 	}
 }
 
@@ -162,16 +163,16 @@ func (lu *LogUrl) parseUrl(strUrl string) (err error) {
 		return
 	}
 
-	filepath = lu.Host + lu.Path
+	filePath = lu.Host + lu.Path
 
 	//Info("scheme [%s] host [%s] path [%s] querys [%s]", lu.Scheme, lu.Host, lu.Path, querys)
 	for k, v := range querys {
 		//Info("key = [%s] v = [%s]", k, v[0])
 		switch k {
 		case "file_size":
-			filesize, _ = strconv.Atoi(v[0])
+			fileSize, _ = strconv.Atoi(v[0])
 		case "log_level":
-			loglevel = getLevel(v[0])
+			logLevel = getLevel(v[0])
 		}
 	}
 
@@ -183,13 +184,13 @@ func (lu *LogUrl) parseUrl(strUrl string) (err error) {
 //创建日志文件
 func (lu *LogUrl) createFile() bool {
 	var err error
-	logfile, err = os.OpenFile(filepath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	logFile, err = os.OpenFile(filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
-		Error("Open log file ", filepath, " failed ", err)
+		Error("Open log file ", filePath, " failed ", err)
 		return false
 	}
 
-	logger = log.New(logfile, "", log.Ldate|log.Ltime|log.LstdFlags)
+	logger = log.New(logFile, "", log.Ldate|log.Ltime|log.LstdFlags)
 
 	return true
 }
@@ -197,7 +198,7 @@ func (lu *LogUrl) createFile() bool {
 //从json文件加载配置
 func (lu *LogUrl) readFromJson() (err error) {
 
-	strJsonFile := filepath
+	strJsonFile := filePath
 
 	go func() { //定时读取JSON文件更新配置信息
 
@@ -219,9 +220,9 @@ func (lu *LogUrl) readFromJson() (err error) {
 				continue
 			}
 
-			filepath = logjson.LogCon.FilePath
-			loglevel = getLevel(logjson.LogCon.LogLevel)
-			filesize = logjson.LogCon.FileSize
+			filePath = logjson.LogCon.FilePath
+			logLevel = getLevel(logjson.LogCon.LogLevel)
+			fileSize = logjson.LogCon.FileSize
 			console = logjson.LogCon.Console
 			if !console {
 				fmt.Println(logjson)
@@ -246,7 +247,7 @@ func getFuncName(pc uintptr) (name string) {
 //设置日志级别(0=DEBUG 1=INFO 2=WARN 3=ERROR 4=FATAL)
 func SetLevel(nLevel int) {
 
-	loglevel = nLevel
+	logLevel = nLevel
 }
 
 //通过级别名称获取索引
@@ -313,7 +314,7 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 
 	strFile, strFunc, nLineNo = getCaller(3)
 	code = "<" + getRoutine() + " " + strFile + ":" + strconv.Itoa(nLineNo) + " " + strFunc + "()" + ">"
-	if level < loglevel {
+	if level < logLevel {
 		return
 	}
 
@@ -333,21 +334,21 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 
 	//输出到文件（如果Open函数传入了正确的文件路径）
 	if logger != nil {
-		fi, e := os.Stat(filepath)
+		fi, e := os.Stat(filePath)
 		if e == nil {
 			fs := fi.Size()
-			if fs > int64(filesize*1024*1024) {
+			if fs > int64(fileSize*1024*1024) {
 
-				logfile.Close()
+				logFile.Close()
 				datetime := time.Now().Format("20060102-150405")
-				res := strings.Split(filepath, ".")
+				res := strings.Split(filePath, ".")
 				newpath := fmt.Sprintf("%v-%v.log", res[0], datetime)
-				e = os.Rename(filepath, newpath) //将文件备份
+				e = os.Rename(filePath, newpath) //将文件备份
 				if e != nil {
 					Error("%s", e)
 					return
 				} else {
-					logurl.createFile() //重新创建文件
+					logUrl.createFile() //重新创建文件
 				}
 			}
 		}
