@@ -1,71 +1,67 @@
 package main
 
 import (
+	"github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/redislock"
-	log "github.com/civet148/gotools/log"
+	"sync"
 	"time"
 )
 
 func main() {
 
 	rlock := redislock.NewRedisLock()
-	if err := rlock.Open("redis://192.168.1.15:6379"); err != nil {
+	if err := rlock.Open("redis://127.0.0.1:6379"); err != nil {
 
 		log.Error("%v", err.Error())
 		return
 	}
 
-	go TestLockA(rlock, 5, 1)
-	time.Sleep(10*time.Second)
-	go TestLockB(rlock, 15, 30)
+	var wg = &sync.WaitGroup{}
+	wg.Add(2)
+	go TestLockA(rlock, 5, 5, wg) //用户A锁5秒，10秒后解锁（可能成功也可能失败）
+	go TestLockB(rlock, 5, 5, wg) //用户B锁10秒，5秒后解锁（可能成功也可能失败）
 
-	time.Sleep(1*time.Minute)
+	wg.Wait()
 	log.Info("Program is ending...")
 }
 
-
-func TestLockA(rlock *redislock.RedisLock, expire, sleep int) {
+func TestLockA(rlock *redislock.RedisLock, expireSec, unlockSec int, wg *sync.WaitGroup) {
 
 	var REIDSLOCK_KEY = "REDISLOCK"
 	var REDISLOCK_VALUE = "I'am user A"
 
-	locker , errLock := rlock.TryLock(REIDSLOCK_KEY, REDISLOCK_VALUE, expire)
-	if errLock != nil {
-		log.Error("Lock key=[%v] value=[%v]  failed error (%v)", REIDSLOCK_KEY, REDISLOCK_VALUE, errLock.Error())
+	defer wg.Done()
+
+	locker, ok := rlock.TryLock(REIDSLOCK_KEY, REDISLOCK_VALUE, expireSec)
+	if !ok {
+		log.Error("Lock key=[%v] value=[%v] failed", REIDSLOCK_KEY, REDISLOCK_VALUE)
 		return
 	}
 	log.Info("Lock key=[%v] value=[%v] ok", REIDSLOCK_KEY, REDISLOCK_VALUE)
 
-	time.Sleep( time.Duration(sleep) *time.Second)
+	time.Sleep(time.Duration(unlockSec) * time.Second)
 
-	errLock = locker.Unlock()
-	if errLock != nil {
-		log.Error("Unlock key=[%v] value=[%v]  failed error (%v)", REIDSLOCK_KEY, REDISLOCK_VALUE, errLock.Error())
-		return
-	}
+	_ = locker.Unlock()
 
 	log.Info("Unlock key=[%v] value=[%v] ok", REIDSLOCK_KEY, REDISLOCK_VALUE)
 }
 
-func TestLockB(rlock *redislock.RedisLock, expire, sleep int) {
+func TestLockB(rlock *redislock.RedisLock, expireSec, unlockSec int, wg *sync.WaitGroup) {
 
 	var REIDSLOCK_KEY = "REDISLOCK"
 	var REDISLOCK_VALUE = "I'am user B"
 
-	locker , errLock := rlock.TryLock(REIDSLOCK_KEY, REDISLOCK_VALUE, expire)
-	if errLock != nil {
-		log.Error("Lock key=[%v] value=[%v]  failed error (%v)", REIDSLOCK_KEY, REDISLOCK_VALUE, errLock.Error())
+	defer wg.Done()
+
+	locker, ok := rlock.TryLock(REIDSLOCK_KEY, REDISLOCK_VALUE, expireSec)
+	if !ok {
+		log.Error("Lock key=[%v] value=[%v] failed", REIDSLOCK_KEY, REDISLOCK_VALUE)
 		return
 	}
 	log.Info("Lock key=[%v] value=[%v] ok", REIDSLOCK_KEY, REDISLOCK_VALUE)
 
-	time.Sleep( time.Duration(sleep) *time.Second)
+	time.Sleep(time.Duration(unlockSec) * time.Second)
 
-	errLock = locker.Unlock()
-	if errLock != nil {
-		log.Error("Unlock key=[%v] value=[%v]  failed error (%v)", REIDSLOCK_KEY, REDISLOCK_VALUE, errLock.Error())
-		return
-	}
-
+	_ = locker.Unlock()
 	log.Info("Unlock key=[%v] value=[%v] ok", REIDSLOCK_KEY, REDISLOCK_VALUE)
 }
