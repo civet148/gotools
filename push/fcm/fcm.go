@@ -21,7 +21,6 @@ var FMC_PARAMS_COUNT = 1
 
 // Message represents fcm request message
 type (
-
 	Fcm struct {
 		fcm_cli *Client
 	}
@@ -264,7 +263,7 @@ var retryableErrors = map[string]bool{
 
 // Client stores client with api key to firebase
 type Client struct {
-	apiKey     string
+	apiKey  string
 	httpCli *http.Client
 }
 
@@ -279,7 +278,7 @@ func init() {
 // NewClient creates a new client
 func NewClient(apiKey string, timeout time.Duration) *Client {
 	return &Client{
-		apiKey:     apiKey,
+		apiKey:  apiKey,
 		httpCli: &http.Client{Timeout: timeout},
 	}
 }
@@ -348,14 +347,14 @@ func New(args ...interface{}) push.IPush {
 		panic(fmt.Errorf("expect %v parameters, got %v", FMC_PARAMS_COUNT, len(args))) //参数个数错误
 	}
 
-	return &Fcm {
+	return &Fcm{
 
 		fcm_cli: NewClient(args[0].(string), 5*time.Second),
 	}
 }
 
 //push message to device (by device token or register id)
-func (f *Fcm) Push(msg *push.Message) (MsgID string, err error) {
+func (f *Fcm) PushNotification(msg *push.Notification) (MsgID string, err error) {
 
 	if msg.AudienceType != push.AUDIENCE_TYPE_REGID_TOKEN {
 		err = fmt.Errorf("FCM just can use AUDIENCE_TYPE_REGID_TOKEN to push message")
@@ -365,13 +364,13 @@ func (f *Fcm) Push(msg *push.Message) (MsgID string, err error) {
 
 	fcmMsg := &Message{
 		// DryRun:          true, // 如果是 true，消息不会下发给用户，用于测试
-		Data: msg.Extra,
+		Data:            msg.Extra,
 		RegistrationIDs: msg.Audiences,
 		Priority:        PriorityHigh,
 		DelayWhileIdle:  true,
 		Notification: Notification{
 			Title: msg.Title,
-			Body: msg.Alert,
+			Body:  msg.Alert,
 			//ClickAction: "com.bilibili.app.in.com.bilibili.push.FCM_MESSAGE", //点击触发事件，暂时不支持
 		},
 		//CollapseKey: strings.TrimFunc("t123456", func(r rune) bool {

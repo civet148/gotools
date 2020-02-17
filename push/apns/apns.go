@@ -61,7 +61,7 @@ func New(args ...interface{}) push.IPush {
 }
 
 //push message to device
-func (a *Apns) Push(msg *push.Message) (MsgID string, err error) {
+func (a *Apns) PushNotification(msg *push.Notification) (MsgID string, err error) {
 
 	if msg.AudienceType != push.AUDIENCE_TYPE_REGID_TOKEN {
 
@@ -76,8 +76,8 @@ func (a *Apns) Push(msg *push.Message) (MsgID string, err error) {
 	}
 
 	Payload := payload.NewPayload().
-                       Alert(msg.Alert). //消息内容(alert of push)
-                       Badge(1) //角标+1
+		Alert(msg.Alert). //消息内容(alert of push)
+		Badge(msg.Badge)  //角标+1
 
 	m := push.StructToMap(&msg.Extra)
 	for k, v := range m {

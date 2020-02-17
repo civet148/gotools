@@ -58,7 +58,7 @@ var (
 	AUDIENCE_TYPE_TAG         AudienceType = 2 //按标签推送(message group)
 )
 
-type Message struct {
+type Notification struct {
 	AudienceType AudienceType //推送类型
 	Audiences    []string     //设备注册ID或标签或别名
 	Platforms    []string     //推送平台（可为空）
@@ -66,13 +66,14 @@ type Message struct {
 	Alert        string       //内容
 	SoundIOS     string       //iOS声音设置 无 默认 自定义(空字符串、声音文件名、default)
 	SoundAndroid int          //声音设置(0 默认 1 播放声音文件)
+	Badge        int          //角标
 	Extra        interface{}  //扩展结构，用于点击推送消息自动跳转页面(选填)
 }
 
 type IPush interface {
 
 	//push message to device
-	Push(msg *Message) (MsgID string, err error)
+	PushNotification(msg *Notification) (MsgID string, err error)
 	//enable or disable debug output
 	Debug(enable bool)
 }
