@@ -14,13 +14,6 @@ type Apns struct {
 	client *apns2.Client
 }
 
-type ApnsMessgae struct {
-	Token   string //token of apple device
-	Message string //message to push
-	Type    int32  //chat type (自定义字段：聊天类型 1=单聊 2=群聊 3=频道)
-	ChatID  int32  //chat id (单聊：发送人id 群聊：群id 频道：频道id)
-}
-
 func init() {
 
 	if err := push.Register(push.AdapterType_Apns, New); err != nil {

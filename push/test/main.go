@@ -10,11 +10,6 @@ import (
 	_ "github.com/civet148/gotools/push/xinge"
 )
 
-type PushExtra struct {
-	Type   int32 `json:"type"`
-	ChatID int32 `json:"chat_id"`
-}
-
 func main() {
 
 	//JPushMessage()  //JPUSH(极光)
@@ -36,7 +31,10 @@ func JPushMessage() {
 		Audiences:    []string{strToken},
 		Title:        "this is message title",
 		Alert:        "you have a new message",
-		Extra:        &PushExtra{Type: 1, ChatID: 10086},
+		Extra: push.PushExtra{
+			"type": "1",
+			"id":   "10086",
+		},
 	}
 
 	JPUSH, err := push.GetAdapter(push.AdapterType_JPush, strAppKey, strSecret, isProdEnv)
@@ -62,7 +60,10 @@ func FcmMessage() {
 		Audiences:    []string{strToken},
 		Title:        "this is message title",
 		Alert:        "you have a new message",
-		Extra:        &PushExtra{Type: 1, ChatID: 10086},
+		Extra: push.PushExtra{
+			"type": "1",
+			"id":   "10086",
+		},
 	}
 	FCM, err := push.GetAdapter(push.AdapterType_Fcm, strApiKey)
 	if err != nil {
@@ -87,7 +88,10 @@ func ApnsMessage() {
 		Audiences:    []string{strToken},
 		Title:        "this is message title",
 		Alert:        "you have a new message",
-		Extra:        &PushExtra{Type: 1, ChatID: 10086},
+		Extra: push.PushExtra{
+			"type": "1",
+			"id":   "10086",
+		},
 	}
 	APNs, err := push.GetAdapter(push.AdapterType_Apns, strAuthKeyFile, strKeyID, strTeamID, strTopic)
 	if err != nil {
@@ -113,7 +117,7 @@ func UmengMessage() {
 		return
 	}
 	if Umeng != nil {
-		Umeng.PushNotification(&push.Notification{
+		strMsgID, err := Umeng.PushNotification(&push.Notification{
 			AudienceType: push.AUDIENCE_TYPE_REGID_TOKEN,
 			Audiences:    []string{strToken},
 			Platforms:    nil,
@@ -121,8 +125,13 @@ func UmengMessage() {
 			Alert:        "you have a new message",
 			SoundIOS:     "",
 			SoundAndroid: 0,
-			Extra:        &PushExtra{Type: 1, ChatID: 10086},
+			Extra: push.PushExtra{
+				"type": "1",
+				"id":   "10086",
+			},
 		})
+
+		log.Debug("MsgID [%v] error [%v]", strMsgID, err)
 	}
 }
 
@@ -138,7 +147,10 @@ func XingeMessage() {
 		Audiences:    []string{strToken},
 		Title:        "this is message title",
 		Alert:        "you have a new message",
-		Extra:        &PushExtra{Type: 1, ChatID: 10086},
+		Extra: push.PushExtra{
+			"type": "1",
+			"id":   "10086",
+		},
 	}
 
 	XinGe, err := push.GetAdapter(push.AdapterType_XinGe, strAppKey, strSecret, isProdEnv)
