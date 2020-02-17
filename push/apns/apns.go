@@ -102,7 +102,7 @@ func (a *Apns) PushNotification(msg *push.Notification) (MsgID string, err error
 }
 
 //enable or disable debug output
-func (n *Apns) Debug(enable bool) {
+func (a *Apns) Debug(enable bool) {
 	if enable {
 		log.SetLevel(0)
 	} else {
