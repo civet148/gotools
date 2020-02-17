@@ -72,8 +72,7 @@ func (a *Apns) PushNotification(msg *push.Notification) (MsgID string, err error
 		Alert(msg.Alert). //消息内容(alert of push)
 		Badge(msg.Badge)  //角标+1
 
-	m := push.StructToMap(&msg.Extra)
-	for k, v := range m {
+	for k, v := range msg.Extra {
 		Payload.Custom(k, v) //自定义字段(custom key-value)
 	}
 	notification.Payload = Payload
