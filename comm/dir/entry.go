@@ -23,12 +23,19 @@ type DirEntry struct {
 	dirs     []*DirEntry
 }
 
+func getSep(dirPath, pathSep string) string {
+	if dirPath == pathSep {
+		return ""
+	}
+	return pathSep
+}
+
 func newFileEntry(dirPath, pathSep string, f os.FileInfo) (e *FileEntry) {
 
 	return &FileEntry{
 		Name:     f.Name(),
 		DirName:  dirPath,
-		PathName: dirPath + pathSep + f.Name(),
+		PathName: dirPath + getSep(dirPath, pathSep) + f.Name(),
 		Size:     f.Size(),
 		Mode:     f.Mode(),
 		Time:     f.ModTime(),
@@ -39,7 +46,7 @@ func newDirEntry(dirPath, pathSep string, f os.FileInfo) (e *DirEntry) {
 	return &DirEntry{
 		Name:     f.Name(),
 		DirName:  dirPath,
-		PathName: dirPath + pathSep + f.Name(),
+		PathName: dirPath + getSep(dirPath, pathSep) + f.Name(),
 		Time:     f.ModTime(),
 	}
 }

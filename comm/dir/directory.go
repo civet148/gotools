@@ -48,13 +48,20 @@ func hasSuffixRegexp(strFileName string, suffixs []string) bool {
 
 //获取指定目录下的所有文件和目录(不递归）
 func GetFilesAndDirs(dirPath string, suffixs ...string) (d DirEntry, err error) {
+	pathSep := string(os.PathSeparator)
+
+	dirPath = strings.TrimSpace(dirPath)
+	idx := strings.LastIndex(dirPath, pathSep)
+	if idx > 0 {
+		dirPath = dirPath[:idx]
+	}
 	dir, err := ioutil.ReadDir(dirPath)
 	if err != nil {
 		return
 	}
 
 	d.Name = dirPath
-	pathSep := string(os.PathSeparator)
+
 	for _, f := range dir {
 		if f.IsDir() { // 目录, 递归遍历
 
