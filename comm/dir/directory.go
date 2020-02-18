@@ -46,6 +46,17 @@ func hasSuffixRegexp(strFileName string, suffixs []string) bool {
 	return false
 }
 
+//获取指定文件或目录的上级目录
+func GetParentDir(strFileName string) (dirParent string) {
+	pathSep := string(os.PathSeparator)
+	strFileName = strings.TrimSpace(strFileName)
+	idx := strings.LastIndex(strFileName, pathSep)
+	if idx > 0 {
+		dirParent = strFileName[:idx]
+	}
+	return
+}
+
 //获取指定目录下的所有文件和目录(不递归）
 func GetFilesAndDirs(dirPath string, suffixs ...string) (d DirEntry, err error) {
 	pathSep := string(os.PathSeparator)
