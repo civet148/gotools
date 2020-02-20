@@ -16,23 +16,23 @@ import (
 	"time"
 )
 
-var LevelName = []string{"[DEBUG]", "[INFO]", "[WARN]", "[ERROR]", "[FATAL]", "[JSON]", "[STRUCT]"}
+var LevelName = []string{"[DEBUG]", "[INFO]", "[WARN]", "[ERROR]", "[FATAL]"}
 
 const (
-	LEVEL_JSON   = 0
-	LEVEL_STRUCT = 0
-	LEVEL_DEBUG  = 0
-	LEVEL_INFO   = 1
-	LEVEL_WARN   = 2
-	LEVEL_ERROR  = 3
-	LEVEL_FATAL  = 4
+	LEVEL_DEBUG = 0
+	LEVEL_INFO  = 1
+	LEVEL_WARN  = 2
+	LEVEL_ERROR = 3
+	LEVEL_FATAL = 4
+	LEVEL_PANIC = 5
 )
 
 type LogContent struct {
-	FilePath string `json:"file_path"`
-	LogLevel string `json:"log_level"`
-	FileSize int    `json:"file_size"`
-	Console  bool   `json:"console"`
+	FilePath   string `json:"file_path"`
+	LogLevel   string `json:"log_level"`
+	FileSize   int    `json:"file_size"`
+	MaxBackups int    `json:"max_backups"`
+	Console    bool   `json:"console"`
 }
 
 type LogJson struct {
@@ -50,15 +50,22 @@ type LogUrl struct {
 	Password string //密码
 }
 
+type Option struct {
+	LogLevel     int    //文件日志输出级别
+	FileSize     int    //文件日志分割大小(MB)
+	MaxBackups   int    //文件最大分割数
+	CloseConsole bool   //开启/关闭终端屏幕输出
+	filePath     string //文件日志路径
+
+}
+
 //全局变量
-var logFile *os.File    //日志文件对象
-var logger *log.Logger  //日志输出对象
-var logUrl LogUrl       //URL解析对象
-var logLevel int        //文件日志输出级别
-var filePath string     //文件日志路径
-var fileSize int        //文件日志分割大小(MB)
-var maxBackups int = 31 //文件最大分割数
-var console = true      //开启/关闭终端屏幕输出
+var (
+	logFile *os.File    //日志文件对象
+	logger  *log.Logger //日志输出对象
+	logUrl  LogUrl      //URL解析对象
+	option  Option      //日志参数选项
+)
 
 /**  打开日志
 * 1. 通过参数直接指定日志文件、输出级别(DEBUG,INFO,WARN,ERROR, FATAL)和属性
@@ -66,38 +73,34 @@ var console = true      //开启/关闭终端屏幕输出
 *	1.1. 直接输入文件名
 *	Open("test.log")
 *
-*	1.2. 设置文件日志输出级别和分块大小(单位：MB)
-*  	Open("file:///var/log/test.log?log_level=INFO&file_size=50")
+*	1.2. 设置文件日志输出级别和分块大小(单位：MB)以及备份文件数
+*  	Open("file:///var/log/test.log?log_level=INFO&file_size=50&max_backups=10")
 *
 * 2. 通过指定json配置文件设置日志级别、日志文件及属性
 *
 *   2.1. 指定json配置文件
 *   Open("json:///etc/test.json")
 *
-*   JSON范例：
-*   {
-*      "file_path":"/tmp/test.log",
-*      "log_level":"INFO",
-*      "file_size":"50",
-*      "email_level":"FATAL",
-*      "email_addr":"civet126@126.com",
-*      "email_title":"error message title"
-*   }
- */
-//JSON配置文件例子
-var jsonExample = `{
+   JSON范例：
+   {
       "file_path":"/tmp/test.log",
       "log_level":"INFO",
-      "file_size":"50"
-   }`
+      "file_size":"1024",
+      "max_backups": 10,
+      "console": true,
+   }
+*/
 
 var colorStdout = colorable.NewColorableStdout()
 
 func init() {
-	fileSize = 50 //MB
+	option.FileSize = 1024 //MB
+	option.MaxBackups = 31
+	option.LogLevel = LEVEL_DEBUG
+	go cleanBackupLog()
 }
 
-func Open(strUrl string) bool {
+func Open(strUrl string, opts ...Option) bool {
 
 	if strUrl == "" {
 
@@ -126,6 +129,9 @@ func Open(strUrl string) bool {
 		Error("Unknown scheme [%s]", logUrl.Scheme)
 	}
 
+	if len(opts) > 0 {
+		option = opts[0]
+	}
 	return true
 }
 
@@ -139,6 +145,35 @@ func Close() {
 			return
 		}
 		logFile = nil
+	}
+}
+
+//设置日志文件分割大小（MB)
+func SetFileSize(size int) {
+	option.FileSize = size
+}
+
+//设置日志级别(0=DEBUG 1=INFO 2=WARN 3=ERROR 4=FATAL)
+func SetLevel(nLevel int) {
+
+	option.LogLevel = nLevel
+}
+
+//设置关闭/开启屏幕输出
+func SetConsole(ok bool) {
+	option.CloseConsole = !ok
+}
+
+//设置最大备份数量
+func SetMaxBackup(nMaxBackups int) {
+	option.MaxBackups = nMaxBackups
+}
+
+//定期清理日志，仅保留MaxBackups个数的日志
+func cleanBackupLog() {
+	for {
+
+		time.Sleep(1 * time.Hour)
 	}
 }
 
@@ -163,30 +198,39 @@ func (lu *LogUrl) parseUrl(strUrl string) (err error) {
 		return
 	}
 
-	filePath = lu.Host + lu.Path
+	option.filePath = lu.Host + lu.Path
 
 	//Info("scheme [%s] host [%s] path [%s] querys [%s]", lu.Scheme, lu.Host, lu.Path, querys)
 	for k, v := range querys {
 		//Info("key = [%s] v = [%s]", k, v[0])
 		switch k {
 		case "file_size":
-			fileSize, _ = strconv.Atoi(v[0])
+			option.FileSize, _ = strconv.Atoi(v[0])
 		case "log_level":
-			logLevel = getLevel(v[0])
+			option.LogLevel = getLevel(v[0])
+		case "max_backups":
+			option.MaxBackups, _ = strconv.Atoi(v[0])
+		case "console":
+			Console, _ := strconv.ParseBool(v[0])
+			option.CloseConsole = !Console
 		}
 	}
 
-	// Debug("filelevel [%d] filepath [%s]  filesize [%d] emaillevel [%d] emailaddr  [%s] emailtitle  [%s]",
-	// 	filelevel, filepath, filesize, emaillevel, emailaddr, emailtitle)
 	return
 }
 
 //创建日志文件
 func (lu *LogUrl) createFile() bool {
 	var err error
-	logFile, err = os.OpenFile(filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+
+	//判断日志文件后缀名合法性
+	if strings.Index(option.filePath, ".") == -1 {
+		panic("log file path illegal, must contain dot suffix [日志文件必须带.后缀名]")
+	}
+
+	logFile, err = os.OpenFile(option.filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
-		Error("Open log file ", filePath, " failed ", err)
+		Error("Open log file ", option.filePath, " failed ", err)
 		return false
 	}
 
@@ -198,7 +242,7 @@ func (lu *LogUrl) createFile() bool {
 //从json文件加载配置
 func (lu *LogUrl) readFromJson() (err error) {
 
-	strJsonFile := filePath
+	strJsonFile := option.filePath
 
 	go func() { //定时读取JSON文件更新配置信息
 
@@ -220,11 +264,11 @@ func (lu *LogUrl) readFromJson() (err error) {
 				continue
 			}
 
-			filePath = logjson.LogCon.FilePath
-			logLevel = getLevel(logjson.LogCon.LogLevel)
-			fileSize = logjson.LogCon.FileSize
-			console = logjson.LogCon.Console
-			if !console {
+			option.filePath = logjson.LogCon.FilePath
+			option.LogLevel = getLevel(logjson.LogCon.LogLevel)
+			option.FileSize = logjson.LogCon.FileSize
+			option.CloseConsole = !logjson.LogCon.Console
+			if option.CloseConsole {
 				fmt.Println(logjson)
 				fmt.Println("Console output closed by ", strJsonFile)
 			}
@@ -242,12 +286,6 @@ func getFuncName(pc uintptr) (name string) {
 	ns := strings.Split(n, ".")
 	name = ns[len(ns)-1]
 	return
-}
-
-//设置日志级别(0=DEBUG 1=INFO 2=WARN 3=ERROR 4=FATAL)
-func SetLevel(nLevel int) {
-
-	logLevel = nLevel
 }
 
 //通过级别名称获取索引
@@ -270,7 +308,6 @@ func getLevel(name string) (idx int) {
 		idx = LEVEL_INFO
 	}
 
-	//Debug("Name [%s] level [%d]", name, idx)
 	return
 }
 
@@ -313,8 +350,8 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 	}
 
 	strFile, strFunc, nLineNo = getCaller(3)
-	code = "<" + getRoutine() + " " + strFile + ":" + strconv.Itoa(nLineNo) + " " + strFunc + "()" + ">"
-	if level < logLevel {
+	code = "<" + strFile + ":" + strconv.Itoa(nLineNo) + " " + strFunc + "()" + ">"
+	if level < option.LogLevel {
 		return
 	}
 
@@ -328,22 +365,22 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 	}
 
 	//打印到终端屏幕
-	if console {
+	if !option.CloseConsole {
 		_, _ = fmt.Fprintln(colorStdout, output)
 	}
 
 	//输出到文件（如果Open函数传入了正确的文件路径）
 	if logger != nil {
-		fi, e := os.Stat(filePath)
+		fi, e := os.Stat(option.filePath)
 		if e == nil {
 			fs := fi.Size()
-			if fs > int64(fileSize*1024*1024) {
+			if fs > int64(option.FileSize*1024*1024) {
 
 				logFile.Close()
-				datetime := time.Now().Format("20060102-150405")
-				res := strings.Split(filePath, ".")
-				newpath := fmt.Sprintf("%v-%v.log", res[0], datetime)
-				e = os.Rename(filePath, newpath) //将文件备份
+				datetime := time.Now().Format("20060102_150405")
+				var newpath string
+				newpath = fmt.Sprintf("%v.%v", option.filePath, datetime) //日志文件有后缀(日志备份文件名格式不能随意改动)
+				e = os.Rename(option.filePath, newpath)                   //将文件备份
 				if e != nil {
 					Error("%s", e)
 					return
@@ -388,6 +425,11 @@ func Fatal(fmtstr string, args ...interface{}) {
 	stic.error(output(LEVEL_FATAL, fmtstr, args...))
 }
 
+//panic
+func Panic(fmtstr string, args ...interface{}) {
+	panic(fmt.Sprintf(fmtstr, args...))
+}
+
 //输出调试级别信息
 func Debugf(fmtstr string, args ...interface{}) {
 	output(LEVEL_DEBUG, fmtstr, args...)
@@ -420,7 +462,6 @@ func Fatalf(fmtstr string, args ...interface{}) {
 
 //输出到空设备
 func Null(fmtstr string, args ...interface{}) {
-
 }
 
 //进入方法（统计）
@@ -431,14 +472,15 @@ func Enter(args ...interface{}) {
 
 //离开方法（统计）
 //返回执行时间：h 时 m 分 s 秒 ms 毫秒 （必须先调用Enter方法才能正确统计执行时间）
-func Leave(args ...interface{}) (h, m, s int, ms float32) {
+func Leave() (h, m, s int, ms float32) {
 
 	if nSpendTime, ok := stic.leave(getCaller(2)); ok {
 
-		h, m, s, ms := getSpendTime(nSpendTime)
-		output(LEVEL_DEBUG, fmt.Sprintf("leave (%vh %vm %vs %.3fms) ", h, m, s, ms), args...)
+		h, m, s, ms = getSpendTime(nSpendTime)
+		output(LEVEL_DEBUG, "leave (%vh %vm %vs %.3fms)", h, m, s, ms)
 	} else {
-		output(LEVEL_DEBUG, fmt.Sprintf("leave (not call log.Enter or expired in 24 hours) "), args...)
+		output(LEVEL_DEBUG, fmt.Sprintf("leave (not call log.Enter or expired in 24 hours) "))
+		//panic("leave (not call log.E^nter or expired in 24 hours)")
 	}
 	return
 }
@@ -454,7 +496,7 @@ func Json(args ...interface{}) {
 		strOutput += "\n...................................................\n" + string(data)
 	}
 
-	output(LEVEL_JSON, strOutput+"\n...................................................\n")
+	output(LEVEL_DEBUG, strOutput+"\n...................................................\n")
 }
 
 //args: a string of function name or nil for all
@@ -487,7 +529,7 @@ func Struct(args ...interface{}) {
 			strLog += fmt.Sprintf("%v (%v) = <%+v> \n", typ.Name(), typ.Kind(), val.Interface())
 		}
 
-		output(LEVEL_STRUCT, strLog)
+		output(LEVEL_DEBUG, strLog)
 	}
 }
 
@@ -566,10 +608,4 @@ func fmtDeep(nDeep int) (s string) {
 		s += fmt.Sprintf("... ")
 	}
 	return
-}
-
-func writeLogDriectly(strLog string) {
-	if logger != nil {
-		logger.Print(strLog)
-	}
 }
