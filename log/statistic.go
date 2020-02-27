@@ -26,7 +26,7 @@ var (
 type statistic struct {
 	callers sync.Map
 	results sync.Map
-	mutex   sync.Mutex
+	mutex   sync.RWMutex
 }
 
 type caller struct {
@@ -42,17 +42,19 @@ type caller struct {
 }
 
 type result struct {
-	FileName      string `json:"file_name"`       //code file of function [代码文件名]
-	LineNo        int    `json:"line_no"`         //line no of function [行号]
-	FuncName      string `json:"func_name"`       //function name [方法名称]
-	CallCount     int64  `json:"call_count"`      //call total times [调用次数]
-	ErrorCount    int64  `json:"error_count"`     //call error times [错误次数]
-	ExeTime       int64  `json:"exe_time"`        //micro seconds [执行总时间]
-	ExeTimeString string `json:"exe_time_string"` //time string format [执行总时间-日期字符串格式]
-	AvgTime       int64  `json:"avg_time"`        //micro seconds [平均执行时间]
-	AvgTimeString string `json:"avg_time_string"` //time string format [平均执行时间-日期字符串格式]
-	CreateTime    int64  `json:"create_time"`     //unix timestamp on seconds [计时开始时间]
-	UpdateTime    int64  `json:"update_time"`     //unix timestamp on seconds [计时更新时间]
+	FileName     string `json:"file_name"`      //code file of function [代码文件名]
+	LineNo       int    `json:"line_no"`        //line no of function [行号]
+	FuncName     string `json:"func_name"`      //function name [方法名称]
+	CallCount    int64  `json:"call_count"`     //call total times [调用次数]
+	ErrorCount   int64  `json:"error_count"`    //call error times [错误次数]
+	TotalTime    int64  `json:"total_time"`     //micro seconds [执行总时间]
+	TotalTimeStr string `json:"total_time_str"` //time string format [执行总时间-日期字符串格式]
+	AvgTime      int64  `json:"avg_time"`       //micro seconds [平均执行时间]
+	AvgTimeStr   string `json:"avg_time_str"`   //time string format [平均执行时间-日期字符串格式]
+	MaxTime      int64  `json:"max_time"`       //max time elapse once [单次最大执行时间]
+	MaxTimeStr   string `json:"max_time_str"`   //max time elapse once [单次最大执行时间-日期字符串格式]
+	CreateTime   int64  `json:"create_time"`    //unix timestamp on seconds [计时开始时间]
+	UpdateTime   int64  `json:"update_time"`    //unix timestamp on seconds [计时更新时间]
 }
 
 type summary struct {
@@ -114,8 +116,11 @@ func getSpendTime(microseconds int64) (h, m, s int, ms float32) {
 }
 
 func getCallerStoreKey(strFile, strFunc string) string {
+	return fmt.Sprintf("%v %v %v", getRoutineId(), strFile, strFunc)
+}
 
-	return fmt.Sprintf("%v %v %v", getRoutine(), strFile, strFunc)
+func makeCallerStoreKey(strRoutineId string, strFile, strFunc string) string {
+	return fmt.Sprintf("%v %v %v", strRoutineId, strFile, strFunc)
 }
 
 func getResultStoreKey(strFile, strFunc string) string {
@@ -123,7 +128,7 @@ func getResultStoreKey(strFile, strFunc string) string {
 	return fmt.Sprintf("%v:%v", strFile, strFunc)
 }
 
-func getRoutine() string {
+func getRoutineId() string {
 
 	strStack := string(debug.Stack())
 	nIdx := strings.IndexAny(strStack, ":\r\n")
@@ -131,6 +136,8 @@ func getRoutine() string {
 		return strStack[:nIdx]
 	}
 	return "<unknown routine>"
+	//id := uuid.New()
+	//return id.String()
 }
 
 //进入方法(enter function)
@@ -161,13 +168,14 @@ func (s *statistic) enter(strFile, strFunc string, nLineNo int) {
 			FuncName:   strFunc,
 			CallCount:  0,
 			ErrorCount: 0,
-			ExeTime:    0,
+			TotalTime:  0,
 			AvgTime:    0,
 			CreateTime: getUnixSecond(),
 			UpdateTime: getUnixSecond(),
 		}
 		s.results.Store(strResultKey, r)
 	}
+	return
 }
 
 //退出方法(leave function)
@@ -192,16 +200,21 @@ func (s *statistic) leave(strFile, strFunc string, nLineNo int) (int64, bool) {
 			r = v2.(*result)
 			r.CallCount++
 			if c.SpendTime > 0 {
-				r.ExeTime += c.SpendTime
-				r.AvgTime = r.ExeTime / r.CallCount
+				r.TotalTime += c.SpendTime
+				r.AvgTime = r.TotalTime / r.CallCount
+				if c.SpendTime > r.MaxTime {
+					r.MaxTime = c.SpendTime //单次调用最大耗时
+				}
 			}
 			if !c.CallOk {
 				r.ErrorCount++
 			}
-			h, m, s, ms := getSpendTime(r.ExeTime)
-			r.ExeTimeString = fmt.Sprintf("%vh %vm %vs %.3fms", h, m, s, ms)
+			h, m, s, ms := getSpendTime(r.TotalTime)
+			r.TotalTimeStr = fmt.Sprintf("%vh %vm %vs %.3fms", h, m, s, ms)
 			h, m, s, ms = getSpendTime(r.AvgTime)
-			r.AvgTimeString = fmt.Sprintf("%vh %vm %vs %.3fms", h, m, s, ms)
+			r.AvgTimeStr = fmt.Sprintf("%vh %vm %vs %.3fms", h, m, s, ms)
+			h, m, s, ms = getSpendTime(r.MaxTime)
+			r.MaxTimeStr = fmt.Sprintf("%vh %vm %vs %.3fms", h, m, s, ms)
 			r.UpdateTime = getUnixSecond()
 		}
 		s.mutex.Unlock() //unlock
@@ -235,19 +248,19 @@ func (s *statistic) report(args ...interface{}) string {
 	var summ = summary{
 		TimeUnit: "micro seconds",
 	}
-
+	s.mutex.RLock()
 	s.results.Range(
 		func(k, v interface{}) bool {
 
 			r := v.(*result)
 			if strFuncName == FUNCNAME_ALL || strFuncName == FUNCNAME_NIL || strings.Contains(r.FuncName, strFuncName) {
-				summ.Results = append(summ.Results, v.(*result))
+				summ.Results = append(summ.Results, r)
 			}
 			return true
 		},
 	)
-
 	data, _ := json.MarshalIndent(summ, "", "\t")
+	s.mutex.RUnlock()
 	return string(data)
 }
 

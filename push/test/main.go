@@ -10,34 +10,31 @@ import (
 	_ "github.com/civet148/gotools/push/xinge"
 )
 
-type PushExtra struct {
-	Type   int32 `json:"type"`
-	ChatID int32 `json:"chat_id"`
-}
-
 func main() {
 
 	//JPushMessage()  //JPUSH(极光)
 	//FcmMessage()    //FCM(Google FireBase)
 	//UmengMessage()  //Umeng(友盟)
-	XingeMessage()  //信鸽(tencent)
+	XingeMessage() //信鸽(tencent)
 	//ApnsMessage()   //APNs(Apple)
 }
 
 func JPushMessage() {
 
-
 	var strAppKey string = "2978da262aa372ed199901d2"
 	var strSecret string = "1033636bfff8d246294fd1c8"
 	var strToken string = "191e35f7e02aeaa0597" //极光token/registered_id 19字节
-	var isProdEnv = false //sandbox environment is false, production is true for jpush
+	var isProdEnv = false                       //sandbox environment is false, production is true for jpush
 
-	jMsg := push.Message{
+	jMsg := push.Notification{
 		AudienceType: push.AUDIENCE_TYPE_REGID_TOKEN,
 		Audiences:    []string{strToken},
 		Title:        "this is message title",
 		Alert:        "you have a new message",
-		Extra:        &PushExtra{Type: 1, ChatID: 10086},
+		Extra: push.PushExtra{
+			"type": "1",
+			"id":   "10086",
+		},
 	}
 
 	JPUSH, err := push.GetAdapter(push.AdapterType_JPush, strAppKey, strSecret, isProdEnv)
@@ -47,7 +44,7 @@ func JPushMessage() {
 	}
 	if JPUSH != nil {
 		JPUSH.Debug(true)
-		MsgID, err := JPUSH.Push(&jMsg)
+		MsgID, err := JPUSH.PushNotification(&jMsg)
 		log.Debug("JPUSH msg id [%v] error [%v]", MsgID, err)
 	}
 
@@ -58,12 +55,15 @@ func FcmMessage() {
 	strApiKey := "AIzaSyBtMplqJkuTIDyIx_CM74MoPHbxHCBcY-o"
 	strToken := "fpICefK-jfE:APA11bHjZTxe503tpFoFCmXXX9LAiMmg7OwgTPYmTb8Ox-yF88umTQnmTQUGbALplxqre7R6v3d0-vSK5MyT4jFtSqklbY1GIaM4d8uZ0wJlwWrRWdBDeOJ4rlpvamd3aGyBlHKAH18N"
 	// test for FCM
-	fcmMsg := push.Message{
+	fcmMsg := push.Notification{
 		AudienceType: push.AUDIENCE_TYPE_REGID_TOKEN,
 		Audiences:    []string{strToken},
 		Title:        "this is message title",
 		Alert:        "you have a new message",
-		Extra:        &PushExtra{Type: 1, ChatID: 10086},
+		Extra: push.PushExtra{
+			"type": "1",
+			"id":   "10086",
+		},
 	}
 	FCM, err := push.GetAdapter(push.AdapterType_Fcm, strApiKey)
 	if err != nil {
@@ -72,23 +72,26 @@ func FcmMessage() {
 	}
 	if FCM != nil {
 		FCM.Debug(true)
-		MsgID, err := FCM.Push(&fcmMsg)
+		MsgID, err := FCM.PushNotification(&fcmMsg)
 		log.Debug("FCM msg id [%v] error [%v]", MsgID, err)
 	}
 }
 
 func ApnsMessage() {
-	var strAuthKeyFile = "AuthKey_U4Q9F3Y9WH.p8" //APNs JWT token auth key file (.p8)
-	var strKeyID = "U4Q9F3Y9WH"                  //APNs key id
-	var strTeamID = "2965AR985S"                 //APNs team id
-	var strTopic = "com.chatol.thunderchat"      //bundle id of your app
+	var strAuthKeyFile = "AuthKey_U4Q9F3Y9WH.p8"                                      //APNs JWT token auth key file (.p8)
+	var strKeyID = "U4Q9F3Y9WH"                                                       //APNs key id
+	var strTeamID = "2965AR985S"                                                      //APNs team id
+	var strTopic = "com.chatol.thunderchat"                                           //bundle id of your app
 	var strToken = "47b9ec1cb4ea5d9e6a62edb183e425a3f2b44715aa26d9848089b1d548e0a0b5" //iOS 64字节
-	apnsMsg := push.Message{
+	apnsMsg := push.Notification{
 		AudienceType: push.AUDIENCE_TYPE_REGID_TOKEN,
 		Audiences:    []string{strToken},
 		Title:        "this is message title",
 		Alert:        "you have a new message",
-		Extra:        &PushExtra{Type: 1, ChatID: 10086},
+		Extra: push.PushExtra{
+			"type": "1",
+			"id":   "10086",
+		},
 	}
 	APNs, err := push.GetAdapter(push.AdapterType_Apns, strAuthKeyFile, strKeyID, strTeamID, strTopic)
 	if err != nil {
@@ -97,13 +100,13 @@ func ApnsMessage() {
 	}
 	if APNs != nil {
 		APNs.Debug(true)
-		MsgID, err := APNs.Push(&apnsMsg)
+		MsgID, err := APNs.PushNotification(&apnsMsg)
 		log.Debug("APNs msg id [%v] error [%v]", MsgID, err)
 	}
 }
 
 func UmengMessage() {
-	
+
 	var strAppKey = "5e1qfcp30cxfb29u570k01f3"
 	var strAppSecret = "jynhjnhhlcgt298ke9q6abpwz3n1j1pv"
 	var strToken = "6a17coue30csp91mxy8zafb29f570001f3yaxhw913lx" //iOS 64字节 安卓 44字节
@@ -114,7 +117,7 @@ func UmengMessage() {
 		return
 	}
 	if Umeng != nil {
-		Umeng.Push(&push.Message{
+		strMsgID, err := Umeng.PushNotification(&push.Notification{
 			AudienceType: push.AUDIENCE_TYPE_REGID_TOKEN,
 			Audiences:    []string{strToken},
 			Platforms:    nil,
@@ -122,25 +125,32 @@ func UmengMessage() {
 			Alert:        "you have a new message",
 			SoundIOS:     "",
 			SoundAndroid: 0,
-			Extra:         &PushExtra{Type: 1, ChatID: 10086},
+			Extra: push.PushExtra{
+				"type": "1",
+				"id":   "10086",
+			},
 		})
+
+		log.Debug("MsgID [%v] error [%v]", strMsgID, err)
 	}
 }
 
 func XingeMessage() {
 
-
 	var strAppKey string = "b1b86bd2a16b8"
 	var strSecret string = "9b99c05cfc8317ea2249e4b5c367z737"
 	var strToken string = "6a17coue30csp91mxy8zafb29f570001f3yaxhwz" //iOS 64字节 安卓40字节
-	var isProdEnv = false //sandbox environment is false, production is true for iOS
+	var isProdEnv = false                                            //sandbox environment is false, production is true for iOS
 
-	msg := push.Message{
+	msg := push.Notification{
 		AudienceType: push.AUDIENCE_TYPE_REGID_TOKEN,
 		Audiences:    []string{strToken},
 		Title:        "this is message title",
 		Alert:        "you have a new message",
-		Extra:        &PushExtra{Type: 1, ChatID: 10086},
+		Extra: push.PushExtra{
+			"type": "1",
+			"id":   "10086",
+		},
 	}
 
 	XinGe, err := push.GetAdapter(push.AdapterType_XinGe, strAppKey, strSecret, isProdEnv)
@@ -150,7 +160,7 @@ func XingeMessage() {
 	}
 	if XinGe != nil {
 		XinGe.Debug(true)
-		MsgID, err := XinGe.Push(&msg)
+		MsgID, err := XinGe.PushNotification(&msg)
 		log.Debug("XinGe msg id [%v] error [%v]", MsgID, err)
 	}
 }

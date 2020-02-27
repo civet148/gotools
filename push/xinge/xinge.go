@@ -45,10 +45,10 @@ var (
 var XINGE_PUSHAPI_URL = "https://openapi.xg.qq.com/v3/push/app"
 
 type XinGe struct {
-	appKey      string       //信鸽appkey
-	appSecret   string       //信鸽secret
-	isProd      bool         //是否正式环境[仅适用于苹果iOS设备]（true=正式环境 false=测试环境）
-	strActivity string       //安卓通知点击跳转activity
+	appKey      string //信鸽appkey
+	appSecret   string //信鸽secret
+	isProd      bool   //是否正式环境[仅适用于苹果iOS设备]（true=正式环境 false=测试环境）
+	strActivity string //安卓通知点击跳转activity
 }
 
 type xingeTime struct {
@@ -217,7 +217,7 @@ func New(args ...interface{}) push.IPush {
 
 //APP消息推送: 推送到信鸽服务器
 //platforms 指定平台(目前友盟仅支持Android)
-func (x *XinGe) Push(msg *push.Message) (MsgID string, err error) {
+func (x *XinGe) PushNotification(msg *push.Notification) (MsgID string, err error) {
 
 	var strEnv = XINGE_ENV_DEV
 	if x.isProd {

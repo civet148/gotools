@@ -13,7 +13,7 @@ import (
 *  2、不会发生死锁。即使有一个客户端在持有锁的期间崩溃而没有主动解锁，也能保证后续其他客户端能加锁
 *  3、具有容错性，只要大部分的Redis节点正常运行，客户端就可以加锁和解锁
 *  4、加锁和解锁必须是同一个客户端，客户端自己不能把别人加的锁给解了
-*/
+ */
 
 var REDIS_CMD_AUTH = "AUTH"
 var REDIS_CMD_SET = "SET"
@@ -26,21 +26,19 @@ var REDIS_CMD_PING = "PING"
 var REDIS_LOCK_SUCC = "OK"
 var REDIS_UNLOCK_SUCC = int64(1)
 
-var REDIS_SET_EX = "EX" //设置过期时间（单位：秒）
-var REDIS_SET_NX = "NX" //设置key-value当指定key不存在时
+var REDIS_SET_EX = "EX"               //设置过期时间（单位：秒）
+var REDIS_SET_NX = "NX"               //设置key-value当指定key不存在时
 var REDIS_SET_WITH_EXPIRE_TIME = "PX" //设置过期时间（单位：毫秒）
 
-
 type RedisLock struct {
-
-	pool *redis.Pool //Redis连接池
-	host, passwd string //Host 服务器地址:端口 Passwd 认证密码
-	stat  bool //连接状态（true已连接，false未连接）
+	pool         *redis.Pool //Redis连接池
+	host, passwd string      //Host 服务器地址:端口 Passwd 认证密码
+	stat         bool        //连接状态（true已连接，false未连接）
 }
 
 type Locker struct {
-	pool *redis.Pool
-	key string
+	pool  *redis.Pool
+	key   string
 	value string
 }
 
@@ -49,16 +47,15 @@ func NewRedisLock() *RedisLock {
 	return &RedisLock{}
 }
 
-
 /*
-* @breif 	打开Redis连接，初始化连接池
+* @brief 	打开Redis连接，初始化连接池
 * @param 	strURL  Redis连接URL 有用户名密码 "redis://123456@192.168.1.10:6379"
 *                   没有用户名密码则是 "redis://192.168.1.10:6379"
 * @return 	err		成功返回nil，失败返回错误类型
-*/
+ */
 func (rds *RedisLock) Open(strURL string) (err error) {
 
-	var strRedisScheme  = "redis://"
+	var strRedisScheme = "redis://"
 	strConnUrl := strings.TrimSpace(strURL)
 
 	if !strings.Contains(strConnUrl, strRedisScheme) {
@@ -70,9 +67,9 @@ func (rds *RedisLock) Open(strURL string) (err error) {
 	if strings.Contains(strConnUrl, "@") {
 
 		rds.passwd = strings.Split(strConnUrl, "@")[0]
-		rds.host = strRedisScheme+strings.Split(strConnUrl, "@")[1]
+		rds.host = strRedisScheme + strings.Split(strConnUrl, "@")[1]
 	} else {
-		rds.host = strRedisScheme+strConnUrl
+		rds.host = strRedisScheme + strConnUrl
 	}
 
 	rds.pool = rds.newPool()
@@ -93,21 +90,22 @@ func (rds *RedisLock) Open(strURL string) (err error) {
 	return
 }
 
-
 /*
-* @breif 	尝试加锁
+* @brief 	尝试加锁
 * @param 	strKey  		Redis唯一key
 * @param 	strValue 		Redis值，用于识别哪个用户加锁
-* @param 	nExpireTime 	超时时间（秒）
+* @param 	nExpireTime 	锁的过期时间（秒）
 * @return 	locker			加锁成功后，返回用于解锁的对象
             err				成功返回nil，失败返回error
 */
-func (rds *RedisLock) TryLock(strKey, strValue string, nExpireTime int) (locker *Locker, err error) {
-
+func (rds *RedisLock) TryLock(strKey, strValue string, nExpireTime int) (locker *Locker, ok bool) {
+	var err error
 	if !rds.stat {
-		err = fmt.Errorf("Reids connect status error, please call 'Open' function to connect reids server")
-		return nil, err
+		err = fmt.Errorf("reids connect status error, please call 'Open' function to connect reids server")
+		fmt.Println(err.Error())
+		return nil, false
 	}
+
 	c := rds.pool.Get()
 	defer c.Close()
 
@@ -116,22 +114,23 @@ func (rds *RedisLock) TryLock(strKey, strValue string, nExpireTime int) (locker 
 	reply, err = redis.String(c.Do(REDIS_CMD_SET, strKey, strValue, REDIS_SET_EX, nExpireTime, REDIS_SET_NX))
 	if err != nil || reply != REDIS_LOCK_SUCC {
 
-		err = fmt.Errorf("Try lock failed, replay [%v] error [%v]", reply, err)
-		return nil, err
+		err = fmt.Errorf("try lock failed, reply [%v] error [%v]", reply, err)
+		fmt.Println(err.Error())
+		return nil, false
 	}
 
 	locker = &Locker{
-		pool: rds.pool,
-		key: strKey,
+		pool:  rds.pool,
+		key:   strKey,
 		value: strValue,
 	}
-	return
+	return locker, true
 }
 
 /*
-* @breif 	解锁
+* @brief 	解锁
 * @return 	err	 	成功返回nil，失败返回error(失败的情况仅限于redis服务器宕机了或执行脚本出错)
-*/
+ */
 func (locker *Locker) Unlock() (err error) {
 
 	c := locker.pool.Get()
@@ -149,7 +148,7 @@ func (locker *Locker) Unlock() (err error) {
 	return
 }
 
-// NewRedisPool 返回redis连接池
+// newPool 返回redis连接池
 func (rds *RedisLock) newPool() *redis.Pool {
 	return &redis.Pool{
 

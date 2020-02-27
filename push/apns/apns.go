@@ -14,13 +14,6 @@ type Apns struct {
 	client *apns2.Client
 }
 
-type ApnsMessgae struct {
-	Token   string //token of apple device
-	Message string //message to push
-	Type    int32  //chat type (自定义字段：聊天类型 1=单聊 2=群聊 3=频道)
-	ChatID  int32  //chat id (单聊：发送人id 群聊：群id 频道：频道id)
-}
-
 func init() {
 
 	if err := push.Register(push.AdapterType_Apns, New); err != nil {
@@ -61,7 +54,7 @@ func New(args ...interface{}) push.IPush {
 }
 
 //push message to device
-func (a *Apns) Push(msg *push.Message) (MsgID string, err error) {
+func (a *Apns) PushNotification(msg *push.Notification) (MsgID string, err error) {
 
 	if msg.AudienceType != push.AUDIENCE_TYPE_REGID_TOKEN {
 
@@ -76,11 +69,10 @@ func (a *Apns) Push(msg *push.Message) (MsgID string, err error) {
 	}
 
 	Payload := payload.NewPayload().
-                       Alert(msg.Alert). //消息内容(alert of push)
-                       Badge(1) //角标+1
+		Alert(msg.Alert). //消息内容(alert of push)
+		Badge(msg.Badge)  //角标+1
 
-	m := push.StructToMap(&msg.Extra)
-	for k, v := range m {
+	for k, v := range msg.Extra {
 		Payload.Custom(k, v) //自定义字段(custom key-value)
 	}
 	notification.Payload = Payload
@@ -102,7 +94,7 @@ func (a *Apns) Push(msg *push.Message) (MsgID string, err error) {
 }
 
 //enable or disable debug output
-func (n *Apns) Debug(enable bool) {
+func (a *Apns) Debug(enable bool) {
 	if enable {
 		log.SetLevel(0)
 	} else {

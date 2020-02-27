@@ -57,9 +57,9 @@ type Message struct {
 }
 
 type Umeng struct {
-	appKey      string       //AppKey
-	appSecret   string       //AppSecret
-	strActivity string       //go to activity
+	appKey      string //AppKey
+	appSecret   string //AppSecret
+	strActivity string //go to activity
 }
 
 type umengBody struct {
@@ -197,9 +197,9 @@ func New(args ...interface{}) push.IPush {
 //python代码参考 https://developer.umeng.com/docs/66632/detail/68343#h2--k-17
 func (u *Umeng) getSignature(strMethod, strUrl string, reqBody interface{}) (strSign string) {
 
-	 body, err := json.Marshal(reqBody)
-	 if	 err != nil {
-			log.Error("request body marshal error [%v]", err.Error())
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		log.Error("request body marshal error [%v]", err.Error())
 		return
 	}
 	strMethod = strings.ToUpper(strMethod) //http method转为大写
@@ -248,7 +248,7 @@ func (u *Umeng) sendPushRequest(strMethod, strUrl string, reqBody interface{}) (
 }
 
 //推送消息(当前只支持Android单播和列播)
-func (u *Umeng) Push(msg *push.Message) (MsgID string, err error) {
+func (u *Umeng) PushNotification(msg *push.Notification) (MsgID string, err error) {
 
 	if msg.AudienceType != push.AUDIENCE_TYPE_REGID_TOKEN {
 

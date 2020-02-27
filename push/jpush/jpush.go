@@ -24,9 +24,9 @@ var JPUSH_DEVICES_URL = "https://device.jpush.cn/v3/devices"
 var JPUSH_ALIASES_URL = "https://device.jpush.cn/v3/aliases"
 
 type JPush struct {
-	appKey    string       //极光appkey
-	appSecret string       //极光secret
-	isProd    bool         //是否正式环境
+	appKey    string //极光appkey
+	appSecret string //极光secret
+	isProd    bool   //是否正式环境
 }
 
 func init() {
@@ -50,15 +50,15 @@ func New(args ...interface{}) push.IPush {
 	}
 
 	return &JPush{
-		appKey:   args[0].(string),
-		appSecret:   args[1].(string),
-		isProd:  args[2].(bool),
+		appKey:    args[0].(string),
+		appSecret: args[1].(string),
+		isProd:    args[2].(bool),
 	}
 }
 
 //APP消息推送: 推送到极光服务器
 //platforms 指定平台，空切片内部自动转为所有平台
-func (j *JPush) Push(msg *push.Message) (MsgID string, err error) {
+func (j *JPush) PushNotification(msg *push.Notification) (MsgID string, err error) {
 
 	if len(msg.Platforms) == 0 { //不指定平台则为三个平台同时发
 		msg.Platforms = []string{push.PLATFORM_ANDROID, push.PLATFORM_IOS, push.PLATFORM_WINPHONE}
@@ -80,7 +80,7 @@ func (j *JPush) Push(msg *push.Message) (MsgID string, err error) {
 	content.Notification.IOS.Alert = msg.Alert  //必须要有值才能收到
 	content.Notification.IOS.Extras = msg.Extra //自定义内容
 	content.Options.TimeToLive = 60
-	content.Options.ApnsProduction = j.isProd //判断IOS的生产还是测试环境
+	content.Options.ApnsProduction = j.isProd  //判断IOS的生产还是测试环境
 	content.Notification.IOS.Sound = "default" /*msg.SoundIOS*/ //默认有声音
 	content.Notification.IOS.Badge = "+1"      //角标默+1
 

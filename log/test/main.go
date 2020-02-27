@@ -3,6 +3,8 @@ package main
 import (
 	"github.com/civet148/gotools/log"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 /**
@@ -65,34 +67,45 @@ type testSt struct {
 	MySubStPtr *TestSubSt
 }
 
+var totalSeconds int64
+var mutex sync.Mutex
+
 func main() {
 
 	log.Enter()
 
 	//strUrl := "test.log" //指定当前目录创建日志文件（Windows+linux通用）
 	//strUrl := "file://e:/test.log" //指定日志文件但不指定属性（Windows）
-	//strUrl := "file:///tmp/test.log" //指定日志文件但不指定属性(Linux)
+	strUrl := "file:///tmp/test.log" //指定日志文件但不指定属性(Linux)
 	//strUrl := "json:///tmp/test.json" //json文件名(Linux)
 	//strUrl := "json://f:/test/test.json" //json文件名(Windows)
 	//strUrl := "file:///var/log/test.log?log_level=INFO&file_size=50" //Linux/Unix文件带属性
 	//strUrl := "file://e:/test.log?log_level=WARN&file_size=50" //Windows文件带属性
 
-	//log.Open(strUrl)
-	//defer log.Close()
+	log.Open(strUrl, log.Option{
+		LogLevel:     log.LEVEL_DEBUG,
+		FileSize:     1, //MB
+		MaxBackups:   10,
+		CloseConsole: false,
+	})
+	defer log.Close()
 
-	//log.SetLevel(log.LEVEL_INFO)
+	//log.SetLevel(log.LEVEL_DEBUG) //设置日志输出级别
+	//log.SetFileSize(1) //设置最大单个文件大小(单位：MB)
+	//log.SetMaxBackup(5) //最多保留备份日志文件数量
+
 	log.Debug("This is debug message")
 	log.Info("This is info message")
 	log.Warn("This is warn message")
 	log.Error("This is error message")
 	log.Fatal("This is fatal message")
-
+	//log.Panic("this function will call panic")
 	wg := &sync.WaitGroup{}
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 5000; i++ {
 
 		wg.Add(1)
-		//go PrintFuncExecuteTime(i, wg)
-		PrintFuncExecuteTime(i, wg)
+		go PrintFuncExecuteTime(i, wg)
+		//PrintFuncExecuteTime(i, wg)
 	}
 
 	wg.Wait()
@@ -100,12 +113,14 @@ func main() {
 
 	//打印方法执行调用次数、总时间、平均时间和错误次数
 	log.Info("report summary: %v", log.Report())
+	log.Info("total seconds %v", totalSeconds)
 }
 
 func PrintFuncExecuteTime(i int, wg *sync.WaitGroup) {
 
-	log.Enter("index", i) //enter PrintLog function (start statistic)
-
+	log.Enter()
+	defer log.Leave()
+	beg := time.Now().Unix()
 	var ip int32 = 10
 	st1 := testSt{
 		flt32:      0.58,
@@ -124,8 +139,8 @@ func PrintFuncExecuteTime(i int, wg *sync.WaitGroup) {
 
 	st2 := &testSt{MyInt: 2, MyFloat64: 4.00, abc: 9999}
 	log.Json(st1, st2)
-	//log.Struct(st1, st2)
-
-	log.Leave("index", i) //leave PrintLog function (end statistic)
+	log.Struct(st1, st2)
+	elapse := time.Now().Unix() - beg
+	atomic.AddInt64(&totalSeconds, elapse)
 	wg.Done()
 }
