@@ -21,6 +21,7 @@ require (
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	github.com/zheng-ji/goSnowFlake v0.0.0-20180906112711-fc763800eec9
 	go.etcd.io/etcd v3.3.18+incompatible
+	golang.org/x/crypto v0.0.0-20190404164418-38d8ce5564a5
 	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
