@@ -499,6 +499,11 @@ func Json(args ...interface{}) {
 	output(LEVEL_DEBUG, strOutput+"\n...................................................\n")
 }
 
+func JsonDebugString(v interface{}) string {
+	data, _ := json.MarshalIndent(v, "", "\t")
+	return string(data)
+}
+
 //args: a string of function name or nil for all
 func Report(args ...interface{}) string {
 	return stic.report(args...)
