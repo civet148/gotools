@@ -100,12 +100,13 @@ func main() {
 	log.Error("This is error message")
 	log.Fatal("This is fatal message")
 	//log.Panic("this function will call panic")
+
 	wg := &sync.WaitGroup{}
-	for i := 0; i < 5000; i++ {
+	for i := 0; i < 50; i++ {
 
 		wg.Add(1)
-		go PrintFuncExecuteTime(i, wg)
-		//PrintFuncExecuteTime(i, wg)
+		//go PrintFuncExecuteTime(i, wg)
+		PrintFuncExecuteTime(i, wg)
 	}
 
 	wg.Wait()
@@ -140,6 +141,7 @@ func PrintFuncExecuteTime(i int, wg *sync.WaitGroup) {
 	st2 := &testSt{MyInt: 2, MyFloat64: 4.00, abc: 9999}
 	log.Json(st1, st2)
 	log.Struct(st1, st2)
+	log.Debugf("%v", log.JsonDebugString(st1))
 	elapse := time.Now().Unix() - beg
 	atomic.AddInt64(&totalSeconds, elapse)
 	wg.Done()
