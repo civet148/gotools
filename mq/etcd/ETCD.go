@@ -1,34 +1,38 @@
 package etcd
 
 import (
+	"context"
 	"fmt"
-	"go.etcd.io/etcd/clientv3"
-	log "github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/comm"
+	log "github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/mq"
+	"go.etcd.io/etcd/clientv3"
 	"strings"
 	"sync"
 	"time"
-	"context"
+)
+
+const (
+	ETCD_SCHEMA_PRIFIX = "etcd://"
 )
 
 type EtcdMQ struct {
-	mode     mq.Mode
-	ex       string           //交换器名称
-	tag      string           //消费者标签
-	url      string           //服务器连接URL
+	mode   mq.Mode
+	ex     string //交换器名称
+	tag    string //消费者标签
+	url    string //服务器连接URL
 	config clientv3.Config
-	conn     *clientv3.Client //连接会话
-	lock   sync.Mutex //断线重连锁
-	closed bool       //远程服务器是否已断开连接
-	debug  bool //开启或关闭调试信息
+	conn   *clientv3.Client //连接会话
+	lock   sync.Mutex       //断线重连锁
+	closed bool             //远程服务器是否已断开连接
+	debug  bool             //开启或关闭调试信息
 }
 
 func init() {
 	mq.Register(mq.Adapter_ETCD, NewMQ)
 }
 
-func NewMQ() (mq.IReactMQ) {
+func NewMQ() mq.IReactMQ {
 
 	return &EtcdMQ{}
 }
@@ -39,15 +43,27 @@ func (this *EtcdMQ) IsClosed() bool {
 	return this.closed
 }
 
+//strUrl格式 单机"etcd://127.0.0.1:2379" 集群 "etcd://127.0.0.1:2379,127.0.0.1:2479,..."
 func (this *EtcdMQ) Connect(mode mq.Mode, strURL string) (err error) {
+
+	if strings.Contains(strURL, ETCD_SCHEMA_PRIFIX) {
+
+		strURL = func(args ...string) string {
+			if len(args) == 2 {
+				return args[1]
+			}
+			return strURL
+		}(strings.Split(strURL, ETCD_SCHEMA_PRIFIX)...)
+	}
+
 	s := strings.Split(strURL, ",")
 	if len(s) < 1 {
 		log.Error("Connect strUrl Split failed,strURL = %s", strURL)
 		panic(strURL)
 	}
 	this.config = clientv3.Config{
-		Endpoints:s,
-		DialTimeout:5*time.Second,
+		Endpoints:   s,
+		DialTimeout: 5 * time.Second,
 	}
 	this.mode = mode
 	this.url = strURL
@@ -76,7 +92,7 @@ func (this *EtcdMQ) Reconnect() (err error) {
 	if this.debug {
 		log.Debug("Try to connect MQ server...")
 	}
-	if this.conn,err = clientv3.New(this.config);err!=nil {
+	if this.conn, err = clientv3.New(this.config); err != nil {
 		if this.debug {
 			log.Error("Connect [%v] failed, error [%v]", this.url, err.Error())
 			return
@@ -96,10 +112,10 @@ func (this *EtcdMQ) Publish(strRoutingKey, strData string) (err error) {
 	if this.debug {
 		log.Info("[PRODUCER] mode [%v] key [%v] data [%v]", this.mode.String(), strRoutingKey, strData)
 	}
-	_,err = this.conn.Put(context.Background(),strRoutingKey,strData)
+	_, err = this.conn.Put(context.Background(), strRoutingKey, strData)
 	if err != nil {
-		if  strings.Contains(err.Error(), "is not open") ||
-			strings.Contains(err.Error(),"504") {//服务器断开连接
+		if strings.Contains(err.Error(), "is not open") ||
+			strings.Contains(err.Error(), "504") { //服务器断开连接
 			this.closed = true //标记连接断开
 		}
 		return fmt.Errorf("Exchange Publish: %s", err)
@@ -109,13 +125,15 @@ func (this *EtcdMQ) Publish(strRoutingKey, strData string) (err error) {
 	return
 }
 
-
 func (this *EtcdMQ) Consume(strBindingKey, strQueueName string, cb mq.FnConsumeCb) (err error) {
 
 	switch this.mode {
-	case mq.Mode_Direct: return this.consumeDirect(strBindingKey, strQueueName, cb)
-	case mq.Mode_Topic: return this.consumeTopic(strBindingKey, strQueueName, cb)
-	case mq.Mode_Fanout: return this.consumeFanout(strBindingKey, strQueueName, cb)
+	case mq.Mode_Direct:
+		return this.consumeDirect(strBindingKey, strQueueName, cb)
+	case mq.Mode_Topic:
+		return this.consumeTopic(strBindingKey, strQueueName, cb)
+	case mq.Mode_Fanout:
+		return this.consumeFanout(strBindingKey, strQueueName, cb)
 	default:
 		return fmt.Errorf("Unknown mode [%v]", this.mode)
 	}
@@ -125,13 +143,15 @@ func (this *EtcdMQ) Consume(strBindingKey, strQueueName string, cb mq.FnConsumeC
 func (this *EtcdMQ) getQueueName(strKeyName string) (name string) {
 
 	switch this.mode {
-	case mq.Mode_Direct: name = fmt.Sprintf("%v.%v", mq.EXCHANGE_NAME_DIRECT, strKeyName)
-	case mq.Mode_Topic:  name = fmt.Sprintf("%v.%v", mq.EXCHANGE_NAME_TOPIC, strKeyName)
-	case mq.Mode_Fanout: name = fmt.Sprintf("%v.%v", mq.EXCHANGE_NAME_FANOUT, strKeyName)
+	case mq.Mode_Direct:
+		name = fmt.Sprintf("%v.%v", mq.EXCHANGE_NAME_DIRECT, strKeyName)
+	case mq.Mode_Topic:
+		name = fmt.Sprintf("%v.%v", mq.EXCHANGE_NAME_TOPIC, strKeyName)
+	case mq.Mode_Fanout:
+		name = fmt.Sprintf("%v.%v", mq.EXCHANGE_NAME_FANOUT, strKeyName)
 	}
 	return
 }
-
 
 func (this *EtcdMQ) consumeDirect(strBindingKey, strQueueName string, cb mq.FnConsumeCb) (err error) {
 	var strData string
@@ -149,7 +169,7 @@ func (this *EtcdMQ) consumeDirect(strBindingKey, strQueueName string, cb mq.FnCo
 		}
 	}*/
 RETRY_CONSUME:
-	if this.closed{
+	if this.closed {
 		if err = this.Reconnect(); err != nil {
 			if this.debug {
 				log.Error("Connect [%v] failed, error [%v]", this.url, err.Error())
@@ -165,7 +185,7 @@ RETRY_CONSUME:
 			}
 		}
 		if this.closed {
-			time.Sleep(1*time.Second)
+			time.Sleep(1 * time.Second)
 			goto RETRY_CONSUME
 		}
 		if this.debug {
@@ -174,7 +194,6 @@ RETRY_CONSUME:
 	}
 	return
 }
-
 
 func (this *EtcdMQ) consumeTopic(strBindingKey, strQueueName string, cb mq.FnConsumeCb) (err error) {
 	var strData string
@@ -211,9 +230,9 @@ func (this *EtcdMQ) consumeTopic(strBindingKey, strQueueName string, cb mq.FnCon
 func (this *EtcdMQ) consumeFanout(strBindingKey, strQueueName string, cb mq.FnConsumeCb) (err error) {
 
 	var strData string
-	wc := this.conn.Watch(context.Background(), strBindingKey, clientv3.WithPrefix(),clientv3.WithPrevKV())
+	wc := this.conn.Watch(context.Background(), strBindingKey, clientv3.WithPrefix(), clientv3.WithPrevKV())
 RETRY_CONSUME:
-	if this.closed{
+	if this.closed {
 		if err = this.Reconnect(); err != nil {
 			if this.debug {
 				log.Error("Connect [%v] failed, error [%v]", this.url, err.Error())
@@ -229,7 +248,7 @@ RETRY_CONSUME:
 			}
 		}
 		if this.closed {
-			time.Sleep(3*time.Second)
+			time.Sleep(3 * time.Second)
 			goto RETRY_CONSUME
 		}
 		if this.debug {
@@ -238,6 +257,7 @@ RETRY_CONSUME:
 	}
 	return
 }
+
 /*
 * @brief 	开启或关闭调式模式
 * @param 	enable 	true开启/false关闭
