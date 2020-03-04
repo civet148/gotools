@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+const (
+	URL_SCHEME_SEP = "://"
+)
+
 type UrlInfo struct {
 	Scheme     string
 	Host       string // host name and port like '127.0.0.1:3306'
@@ -65,7 +69,7 @@ func ParseUrl(strUrl string) (ui *UrlInfo) {
 		var strScheme string
 		_ = strScheme
 
-		index := strings.LastIndex(strUrl, "://")
+		index := strings.LastIndex(strUrl, URL_SCHEME_SEP)
 		if index > 0 {
 			strScheme = strUrl[:index]
 			strUrl = strUrl[index+3:]
@@ -82,7 +86,7 @@ func ParseUrl(strUrl string) (ui *UrlInfo) {
 			}
 
 			if strScheme != "" {
-				strUrl = strScheme + "://"
+				strUrl = strScheme + URL_SCHEME_SEP
 			}
 			strUrl += strPrefix + strSuffix
 		}
