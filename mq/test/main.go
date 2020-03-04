@@ -4,11 +4,11 @@ import (
 	"fmt"
 	log "github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/mq"
+	_ "github.com/civet148/gotools/mq/etcd"
+	_ "github.com/civet148/gotools/mq/kafka"
 	_ "github.com/civet148/gotools/mq/mqtt"
 	_ "github.com/civet148/gotools/mq/rabbit"
 	_ "github.com/civet148/gotools/mq/redis"
-	_ "github.com/civet148/gotools/mq/etcd"
-	_ "github.com/civet148/gotools/mq/kafka"
 	"time"
 )
 
@@ -20,12 +20,11 @@ func main() {
 	log.Info("Program is running on...")
 
 	var mode mq.Adapter
-	mode = mq.Adapter_MQTT //mq.Adapter_RabbitMQ  mq.Adapter_RedisMQ
+	mode = mq.Adapter_ETCD //mq.Adapter_RabbitMQ  mq.Adapter_RedisMQ
 
 	switch mode {
 	case mq.Adapter_RabbitMQ:
 		{
-
 			// RabbitMQ无认证信息 amqp://192.168.1.15:5672
 			// RabbitMQ带认证信息 amqp://test:123456@192.168.1.15:5672
 			strConnUrl = "amqp://192.168.1.15:5672"
@@ -42,6 +41,14 @@ func main() {
 			// SSL加密连接URL范例: "mqtt://192.168.1.15:8883/config?tls=true&ca=ca.crt&key=client.key&cer=client.crt&client-id=MyNameIsLory"
 			// 非加密连接URL规范
 			strConnUrl = "mqtt://192.168.1.15:1883/config?client-id="
+		}
+	case mq.Adapter_ETCD:
+		{
+			strConnUrl = "etcd://192.168.124.110:2379"
+		}
+	case mq.Adapter_KafkaMQ:
+		{
+
 		}
 	}
 
@@ -165,7 +172,7 @@ func PublishDirect(ReactMQ mq.IReactMQ, strRoutingKey string) (err error) {
 			goto CONTINUE
 		}
 		log.Info("Publish [direct] data [%v] to broker ok", strMsg)
-		nMsgIndex ++
+		nMsgIndex++
 
 	CONTINUE:
 		if prod.IsClosed() {
@@ -215,7 +222,7 @@ func PublishTopic(ReactMQ mq.IReactMQ, strRoutingKey string) (err error) {
 			goto CONTINUE
 		}
 		log.Info("Publish [topic] data [%v] to broker ok", strMsg)
-		nMsgIndex ++
+		nMsgIndex++
 
 	CONTINUE:
 		if prod.IsClosed() {
@@ -255,7 +262,7 @@ func PublishFanout(ReactMQ mq.IReactMQ, strRoutingKey string) (err error) {
 			goto CONTINUE
 		}
 		log.Info("Publish [fanout] data [%v] to broker ok", strMsg)
-		nMsgIndex ++
+		nMsgIndex++
 
 	CONTINUE:
 		if prod.IsClosed() {
