@@ -3,3 +3,4 @@
 *.log
 /push/.idea
 /log/test/*.log
+/.idea/
