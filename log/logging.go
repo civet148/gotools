@@ -395,39 +395,55 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 	return
 }
 
+func fmtString(args ...interface{}) (strOut string) {
+	if len(args) > 0 {
+		switch args[0].(type) {
+		case string:
+			if strings.Contains(args[0].(string), "%") {
+				strOut = fmt.Sprintf(args[0].(string), args[1:]...)
+			} else {
+				strOut = fmt.Sprint(args...)
+			}
+		default:
+			strOut = fmt.Sprint(args...)
+		}
+	}
+	return
+}
+
 //输出调试级别信息
-func Debug(fmtstr string, args ...interface{}) {
-	output(LEVEL_DEBUG, fmtstr, args...)
+func Debug(args ...interface{}) {
+	output(LEVEL_DEBUG, fmtString(args...))
 }
 
 //输出运行级别信息
-func Info(fmtstr string, args ...interface{}) {
-	output(LEVEL_INFO, fmtstr, args...)
+func Info(args ...interface{}) {
+	output(LEVEL_INFO, fmtString(args...))
 }
 
 //输出警告级别信息
-func Warn(fmtstr string, args ...interface{}) {
-	output(LEVEL_WARN, fmtstr, args...)
+func Warn(args ...interface{}) {
+	output(LEVEL_WARN, fmtString(args...))
 }
 
 //输出警告级别信息
-func Warning(fmtstr string, args ...interface{}) {
-	output(LEVEL_WARN, fmtstr, args...)
+func Warning(args ...interface{}) {
+	output(LEVEL_WARN, fmtString(args...))
 }
 
 //输出错误级别信息
-func Error(fmtstr string, args ...interface{}) {
-	stic.error(output(LEVEL_ERROR, fmtstr, args...))
+func Error(args ...interface{}) {
+	stic.error(output(LEVEL_ERROR, fmtString(args...)))
 }
 
 //输出危险级别信息
-func Fatal(fmtstr string, args ...interface{}) {
-	stic.error(output(LEVEL_FATAL, fmtstr, args...))
+func Fatal(args ...interface{}) {
+	stic.error(output(LEVEL_FATAL, fmtString(args...)))
 }
 
 //panic
-func Panic(fmtstr string, args ...interface{}) {
-	panic(fmt.Sprintf(fmtstr, args...))
+func Panic(args ...interface{}) {
+	panic(fmt.Sprintf(fmtString(args...)))
 }
 
 //输出调试级别信息

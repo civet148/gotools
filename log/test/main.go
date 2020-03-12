@@ -102,7 +102,7 @@ func main() {
 	//log.Panic("this function will call panic")
 
 	wg := &sync.WaitGroup{}
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 100; i++ {
 
 		wg.Add(1)
 		//go PrintFuncExecuteTime(i, wg)
@@ -115,6 +115,11 @@ func main() {
 	//打印方法执行调用次数、总时间、平均时间和错误次数
 	log.Info("report summary: %v", log.Report())
 	log.Info("total seconds %v", totalSeconds)
+	log.Debug("This is debug message level = ", 0)
+	log.Info("This is info message level = ", 1)
+	log.Warn("This is warn message level = ", 2)
+	log.Error("This is error message level = ", 3)
+	log.Fatal("This is fatal message level = ", 4)
 }
 
 func PrintFuncExecuteTime(i int, wg *sync.WaitGroup) {
