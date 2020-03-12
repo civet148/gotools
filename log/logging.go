@@ -153,9 +153,30 @@ func SetFileSize(size int) {
 	option.FileSize = size
 }
 
-//设置日志级别(0=DEBUG 1=INFO 2=WARN 3=ERROR 4=FATAL)
-func SetLevel(nLevel int) {
+//设置日志级别(字符串型: debug/info/warn/error/fatal 数值型: 0=DEBUG 1=INFO 2=WARN 3=ERROR 4=FATAL)
+func SetLevel(level interface{}) {
 
+	var nLevel int
+	switch level.(type) {
+	case string:
+		strLevel := strings.ToLower(level.(string))
+		switch strLevel {
+		case "debug":
+			nLevel = 0
+		case "info":
+			nLevel = 1
+		case "warn", "warning":
+			nLevel = 2
+		case "error":
+			nLevel = 3
+		case "fatal":
+			nLevel = 4
+		}
+	case int8, int16, int, int32, int64, uint8, uint16, uint, uint32, uint64:
+		nLevel, _ = strconv.Atoi(fmt.Sprintf("%v", level))
+	default:
+		panic("not support yet")
+	}
 	option.LogLevel = nLevel
 }
 

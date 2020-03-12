@@ -90,7 +90,7 @@ func main() {
 	})
 	defer log.Close()
 
-	//log.SetLevel(log.LEVEL_DEBUG) //设置日志输出级别
+	//log.SetLevel("info") //设置日志输出级别
 	//log.SetFileSize(1) //设置最大单个文件大小(单位：MB)
 	//log.SetMaxBackup(5) //最多保留备份日志文件数量
 
