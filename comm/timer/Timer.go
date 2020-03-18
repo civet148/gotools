@@ -37,7 +37,7 @@ func init() {
 
 func startMonitor() {
 
-	ticker := time.NewTicker(1000 * time.Microsecond) //1毫秒秒触发一次
+	ticker := time.NewTicker(10 * time.Millisecond) //n毫秒触发一次
 
 	for {
 		select {
