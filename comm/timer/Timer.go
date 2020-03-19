@@ -12,6 +12,10 @@ var (
 	RepeatOnce    = 1  //执行一次
 )
 
+const (
+	TIKER_INTERVAL_MS = 5
+)
+
 type ITimer interface {
 	//定时任务执行接口
 	OnTimer(id int, param interface{})
@@ -37,7 +41,7 @@ func init() {
 
 func startMonitor() {
 
-	ticker := time.NewTicker(10 * time.Millisecond) //n毫秒触发一次
+	ticker := time.NewTicker(TIKER_INTERVAL_MS * time.Millisecond) //n毫秒触发一次
 
 	for {
 		select {
@@ -103,6 +107,10 @@ func SetTimer(this interface{}, id int, elapse int, repeat int, param interface{
 	if repeat <= 0 && repeat != RepeatForever { //仅-1允许
 
 		return false
+	}
+
+	if elapse < TIKER_INTERVAL_MS {
+		elapse = TIKER_INTERVAL_MS
 	}
 
 	strKey := getTimerKey(this, id)
