@@ -181,8 +181,8 @@ func SetLevel(level interface{}) {
 }
 
 //设置关闭/开启屏幕输出
-func SetConsole(ok bool) {
-	option.CloseConsole = !ok
+func CloseConsole(ok bool) {
+	option.CloseConsole = ok
 }
 
 //设置最大备份数量
@@ -202,7 +202,8 @@ func cleanBackupLog() {
 func (lu *LogUrl) parseUrl(strUrl string) (err error) {
 
 	var querys url.Values
-	u, err := url.Parse(strUrl)
+	var u *url.URL
+	u, err = url.Parse(strUrl)
 	if err != nil {
 		return
 	}
