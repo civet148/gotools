@@ -74,9 +74,9 @@ func main() {
 
 	log.Enter()
 
-	//strUrl := "test.log" //指定当前目录创建日志文件（Windows+linux通用）
+	strUrl := "test.log" //指定当前目录创建日志文件（Windows+linux通用）
 	//strUrl := "file://e:/test.log" //指定日志文件但不指定属性（Windows）
-	strUrl := "file:///tmp/test.log" //指定日志文件但不指定属性(Linux)
+	//strUrl := "file:///tmp/test.log" //指定日志文件但不指定属性(Linux)
 	//strUrl := "json:///tmp/test.json" //json文件名(Linux)
 	//strUrl := "json://f:/test/test.json" //json文件名(Windows)
 	//strUrl := "file:///var/log/test.log?log_level=INFO&file_size=50" //Linux/Unix文件带属性

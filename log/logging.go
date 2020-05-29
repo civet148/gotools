@@ -256,7 +256,7 @@ func (lu *LogUrl) createFile() bool {
 		return false
 	}
 
-	logger = log.New(logFile, "", log.Ldate|log.Ltime|log.LstdFlags)
+	logger = log.New(logFile, "", log.Lmicroseconds|log.LstdFlags)
 
 	return true
 }
