@@ -504,7 +504,7 @@ func Null(fmtstr string, args ...interface{}) {
 
 //进入方法（统计）
 func Enter(args ...interface{}) {
-	output(LEVEL_DEBUG, "enter ", args...)
+	output(LEVEL_INFO, "enter ", args...)
 	stic.enter(getCaller(2))
 }
 
@@ -513,12 +513,8 @@ func Enter(args ...interface{}) {
 func Leave() (h, m, s int, ms float32) {
 
 	if nSpendTime, ok := stic.leave(getCaller(2)); ok {
-
 		h, m, s, ms = getSpendTime(nSpendTime)
-		output(LEVEL_DEBUG, "leave (%vh %vm %vs %.3fms)", h, m, s, ms)
-	} else {
-		output(LEVEL_DEBUG, fmt.Sprintf("leave (not call log.Enter or expired in 24 hours) "))
-		//panic("leave (not call log.E^nter or expired in 24 hours)")
+		output(LEVEL_INFO, "leave (%vh %vm %vs %.3fms)", h, m, s, ms)
 	}
 	return
 }
