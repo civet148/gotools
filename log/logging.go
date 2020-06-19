@@ -380,8 +380,8 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 	var output string
 
 	switch runtime.GOOS {
-	//case "windows": //Windows终端不支持颜色显示
-	//	output = time.Now().Format("2006-01-02 15:04:05") + " " + Name + " " + code + " " + inf
+	case "windows": //Windows终端不再支持颜色显示
+		output = time.Now().Format("2006-01-02 15:04:05") + " " + Name + " " + code + " " + inf
 	default: //Unix类终端支持颜色显示
 		output = "\033[1m" + colorTimeName + " " + code + "\033[0m " + inf
 	}
