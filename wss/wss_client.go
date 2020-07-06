@@ -4,7 +4,6 @@ import "fmt"
 
 type SocketClient struct {
 	sock   Socket
-	addr   string
 	closed bool
 }
 
@@ -25,6 +24,14 @@ func (w *SocketClient) Connect(url string) (err error) {
 	}
 	w.sock = s
 	return w.sock.Connect()
+}
+
+//only for UDP
+func (w *SocketClient) Listen(url string) (err error) {
+	if w.sock = createSocket(url); w.sock == nil {
+		return fmt.Errorf("create socket by url [%v] failed", url)
+	}
+	return w.sock.Listen()
 }
 
 func (w *SocketClient) Send(data []byte, to ...string) (n int, err error) {

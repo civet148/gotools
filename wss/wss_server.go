@@ -47,42 +47,45 @@ func (w *SocketServer) Listen(handler SocketHandler) (err error) {
 		log.Errorf(err.Error())
 		return
 	}
+	log.Debugf("listen protocol [%v] address [%v] ok", w.sock.GetSocketType(), w.sock.GetLocalAddr())
+	if w.sock.GetSocketType() != SocketType_UDP {
+		go func() {
+			log.Debugf("start goroutine for channel event accepting/quiting")
+			for {
+				if !w.running {
+					log.Debugf("accepting/quiting channel service loop break")
+					break //service loop break
+				}
+				select {
+				case s := <-w.accepting: //client connection coming...
+					w.onAccept(s)
+				case s := <-w.quiting: //client connection closed
+					w.onClose(s)
+					//default: //disable default because of high CPU performance
+				}
+			}
+		}()
 
-	go func() {
-		log.Debugf("start goroutine for channel event accepting/quiting")
-		for {
-			if !w.running {
-				log.Debugf("accepting/quiting channel service loop break")
-				break //service loop break
+		//new go routine for accept new connections
+		go func() {
+			log.Debugf("start goroutine for accept new connection")
+			for {
+				if !w.running {
+					log.Debugf("accept service loop break")
+					break //service loop break
+				}
+				s := w.sock.Accept()
+				if err != nil {
+					log.Fatal("accept failed error [%v]", err.Error())
+					return
+				}
+				//socket quiting...
+				w.accepting <- s
 			}
-			select {
-			case s := <-w.accepting: //client connection coming...
-				w.onAccept(s)
-			case s := <-w.quiting: //client connection closed
-				w.onClose(s)
-				//default: //disable default because of high CPU performance
-			}
-		}
-	}()
-
-	//new go routine for accept new connections
-	go func() {
-		log.Debugf("start goroutine for accept new connection")
-		for {
-			if !w.running {
-				log.Debugf("accept service loop break")
-				break //service loop break
-			}
-			s := w.sock.Accept()
-			if err != nil {
-				log.Fatal("accept failed error [%v]", err.Error())
-				return
-			}
-			//socket quiting...
-			w.accepting <- s
-		}
-	}()
-
+		}()
+	} else {
+		w.onAccept(w.sock)
+	}
 	return
 }
 

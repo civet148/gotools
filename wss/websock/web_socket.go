@@ -137,6 +137,10 @@ func (s *socket) GetRemoteAddr() (addr string) {
 	return
 }
 
+func (s *socket) GetSocketType() wss.SocketType {
+	return wss.SocketType_WEB
+}
+
 func (s *socket) debugMessageType(msgType int) {
 
 	switch msgType {

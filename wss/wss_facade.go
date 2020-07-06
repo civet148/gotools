@@ -19,7 +19,7 @@ const (
 )
 
 const (
-	PACK_FRAGMENT_MAX = 1400
+	PACK_FRAGMENT_MAX = 1500
 )
 
 type SocketHandler interface {
@@ -37,6 +37,7 @@ type Socket interface {
 	Close() (err error)                                    // close socket
 	GetLocalAddr() string                                  // get socket local address
 	GetRemoteAddr() string                                 // get socket remote address
+	GetSocketType() SocketType                             //get socket type
 }
 
 type SocketType int

@@ -30,12 +30,12 @@ func NewSocket(ui *parser.UrlInfo) wss.Socket {
 }
 
 func (s *socket) Listen() (err error) {
-	var tcpVer = s.getTcpVer()
-	addr := s.ui.GetHost()
-	log.Debugf("trying listen [%v] protocol [%v]", addr, s.ui.GetScheme())
-	s.listener, err = net.Listen(tcpVer, addr)
+	var networkVer = s.getVer()
+	strAddr := s.ui.GetHost()
+	log.Debugf("trying listen [%v] protocol [%v]", strAddr, s.ui.GetScheme())
+	s.listener, err = net.Listen(networkVer, strAddr)
 	if err != nil {
-		log.Errorf("listen tcp address [%s] failed", addr)
+		log.Errorf("listen tcp address [%s] failed", strAddr)
 		return
 	}
 	return
@@ -52,7 +52,7 @@ func (s *socket) Accept() wss.Socket {
 }
 
 func (s *socket) Connect() (err error) {
-	var tcpVer = s.getTcpVer()
+	var tcpVer = s.getVer()
 	addr := s.ui.GetHost()
 	var tcpAddr *net.TCPAddr
 	tcpAddr, err = net.ResolveTCPAddr(tcpVer, addr)
@@ -122,9 +122,13 @@ func (s *socket) GetRemoteAddr() string {
 	return s.conn.RemoteAddr().String()
 }
 
-func (s *socket) getTcpVer() (tcpVer string) {
+func (s *socket) GetSocketType() wss.SocketType {
+	return wss.SocketType_TCP
+}
+
+func (s *socket) getVer() (ver string) {
 	if s.isTcp6() {
-		tcpVer = TCPv6
+		ver = TCPv6
 	}
 	return TCPv4
 }
