@@ -67,7 +67,12 @@ func (s *socket) Send(data []byte, to ...string) (n int, err error) {
 	}
 
 	strToAddr := to[0]
-	strToAddr = strings.Replace(strToAddr, "://", "", -1)
+	nSep := len(parser.URL_SCHEME_SEP)
+	if strings.Contains(strToAddr, parser.URL_SCHEME_SEP) {
+		nIndex := strings.Index(strToAddr, parser.URL_SCHEME_SEP)
+		strToAddr = strToAddr[nIndex+nSep:]
+	}
+
 	if udpAddr, err = net.ResolveUDPAddr(networkVer, strToAddr); err != nil {
 		log.Errorf("resolve UDP addr [%v] error [%v]", strToAddr, err.Error())
 		return

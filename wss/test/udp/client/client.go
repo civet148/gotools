@@ -9,7 +9,7 @@ import (
 
 const (
 	UDP_CLIENT_URL  = "udp://127.0.0.1:6664"
-	UDP_SERVER_ADDR = "127.0.0.1:6665"
+	UDP_SERVER_ADDR = "udp://127.0.0.1:6665"
 )
 
 func main() {
