@@ -31,8 +31,8 @@ func (w *SocketClient) Send(data []byte, to ...string) (n int, err error) {
 	return w.send(w.sock, data, to...)
 }
 
-func (w *SocketClient) Recv() (data []byte, from string, err error) {
-	return w.recv(w.sock)
+func (w *SocketClient) Recv(length int) (data []byte, from string, err error) {
+	return w.recv(w.sock, length)
 }
 
 func (w *SocketClient) GetLocalAddr() (addr string) {
@@ -51,6 +51,6 @@ func (w *SocketClient) send(s Socket, data []byte, to ...string) (n int, err err
 	return s.Send(data, to...)
 }
 
-func (w *SocketClient) recv(s Socket) (data []byte, from string, err error) {
-	return s.Recv(-1)
+func (w *SocketClient) recv(s Socket, length int) (data []byte, from string, err error) {
+	return s.Recv(length)
 }

@@ -105,17 +105,23 @@ func (w *SocketServer) closeSocket(s Socket) (err error) {
 	if s == nil {
 		return fmt.Errorf("close socket is nil")
 	}
+	w.removeClient(s)
 	return s.Close()
 }
 
 func (w *SocketServer) sendSocket(s Socket, data []byte, to ...string) (n int, err error) {
 	if s == nil || len(data) == 0 {
-		return 0, fmt.Errorf("send socket is nil or data length is 0")
+		err = fmt.Errorf("send socket is nil or data length is 0")
+		return
 	}
 	return s.Send(data, to...)
 }
 
 func (w *SocketServer) recvSocket(s Socket) (data []byte, from string, err error) {
+	if s == nil {
+		err = fmt.Errorf("send socket is nil")
+		return
+	}
 	return s.Recv(-1)
 }
 
