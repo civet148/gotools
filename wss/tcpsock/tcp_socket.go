@@ -30,10 +30,10 @@ func NewSocket(ui *parser.UrlInfo) wss.Socket {
 }
 
 func (s *socket) Listen() (err error) {
-
-	addr := s.ui.Host
-	log.Debugf("trying listen [%v]", addr)
-	s.listener, err = net.Listen("tcp", addr)
+	var tcpVer = s.getTcpVer()
+	addr := s.ui.GetHost()
+	log.Debugf("trying listen [%v] protocol [%v]", addr, s.ui.GetScheme())
+	s.listener, err = net.Listen(tcpVer, addr)
 	if err != nil {
 		log.Errorf("listen tcp address [%s] failed", addr)
 		return
@@ -52,12 +52,8 @@ func (s *socket) Accept() wss.Socket {
 }
 
 func (s *socket) Connect() (err error) {
-	var tcpVer = TCPv4
-
-	if s.isTcp6() {
-		tcpVer = TCPv6
-	}
-	addr := s.ui.Host
+	var tcpVer = s.getTcpVer()
+	addr := s.ui.GetHost()
 	var tcpAddr *net.TCPAddr
 	tcpAddr, err = net.ResolveTCPAddr(tcpVer, addr)
 	if err != nil {
@@ -65,7 +61,7 @@ func (s *socket) Connect() (err error) {
 		return err
 	}
 
-	s.conn, err = net.DialTCP("tcp", nil, tcpAddr)
+	s.conn, err = net.DialTCP(tcpVer, nil, tcpAddr)
 	if err != nil {
 		log.Errorf("dial tcp to [%s] failed", addr)
 		return err
@@ -98,7 +94,7 @@ func (s *socket) Recv(length int) (data []byte, from string, err error) {
 	} else {
 
 		for left > 0 {
-			if n, err = s.conn.Read(data); err != nil {
+			if n, err = s.conn.Read(data[recv:]); err != nil {
 				log.Errorf("read data error [%v]", err.Error())
 				return
 			}
@@ -126,8 +122,15 @@ func (s *socket) GetRemoteAddr() string {
 	return s.conn.RemoteAddr().String()
 }
 
+func (s *socket) getTcpVer() (tcpVer string) {
+	if s.isTcp6() {
+		tcpVer = TCPv6
+	}
+	return TCPv4
+}
+
 func (s *socket) isTcp6() (ok bool) {
-	scheme := s.ui.Scheme
+	scheme := s.ui.GetScheme()
 	if scheme == wss.URL_SCHEME_TCP6 {
 		return true
 	}

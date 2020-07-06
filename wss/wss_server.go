@@ -32,7 +32,6 @@ func NewServer(url string) *SocketServer {
 		locker:    &sync.Mutex{},
 		sock:      s,
 		accepting: make(chan Socket, 1000),
-		receiving: make(chan Socket, 1000),
 		quiting:   make(chan Socket, 1000),
 		clients:   make(map[Socket]*SocketClient, 0),
 		running:   true,
@@ -53,6 +52,7 @@ func (w *SocketServer) Listen(handler SocketHandler) (err error) {
 		log.Debugf("start goroutine for channel event accepting/quiting")
 		for {
 			if !w.running {
+				log.Debugf("accepting/quiting channel service loop break")
 				break //service loop break
 			}
 			select {
@@ -70,6 +70,7 @@ func (w *SocketServer) Listen(handler SocketHandler) (err error) {
 		log.Debugf("start goroutine for accept new connection")
 		for {
 			if !w.running {
+				log.Debugf("accept service loop break")
 				break //service loop break
 			}
 			s := w.sock.Accept()
@@ -127,7 +128,7 @@ func (w *SocketServer) recvSocket(s Socket) (data []byte, from string, err error
 
 func (w *SocketServer) onAccept(s Socket) {
 	c := w.addClient(s)
-	go w.readSocketClient(s)
+	go w.readSocket(s)
 	w.handler.OnAccept(c)
 }
 
@@ -140,10 +141,9 @@ func (w *SocketServer) onReceive(s Socket, data []byte, length int, from string)
 	w.handler.OnReceive(c, data, length, from)
 }
 
-func (w *SocketServer) readSocketClient(s Socket) {
+func (w *SocketServer) readSocket(s Socket) {
 	for {
 		if data, from, err := w.recvSocket(s); err != nil {
-			log.Errorf("client [%+v] receive data error [%v]", s.GetRemoteAddr(), err.Error())
 			w.quiting <- s
 			break
 		} else if len(data) > 0 {
