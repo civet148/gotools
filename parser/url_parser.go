@@ -2,11 +2,21 @@ package parser
 
 import (
 	"net/url"
+	"strconv"
 	"strings"
 )
 
 const (
-	URL_SCHEME_SEP = "://"
+	URL_SCHEME_HTTPS     = "https"
+	URL_SCHEME_HTTP      = "http"
+	URL_SCHEME_MYSQL     = "mysql"
+	URL_SCHEME_POSTGRES  = "postgres"
+	URL_SCHEME_REDIS     = "redis"
+	URL_SCHEME_ETCD      = "etcd"
+	URL_SCHEME_KAFKA     = "kafka"
+	URL_SCHEME_MSSQL     = "mssql"
+	URL_SCHEME_ZOOKEEPER = "zookeeper"
+	URL_SCHEME_SEP       = "://"
 )
 
 type UrlInfo struct {
@@ -112,6 +122,84 @@ func ParseUrl(strUrl string) (ui *UrlInfo) {
 	vs, _ := url.ParseQuery(u.RawQuery)
 	for k, v := range vs {
 		ui.Queries[k] = v[0]
+	}
+	return
+}
+
+func (u *UrlInfo) GetScheme() string {
+	return u.Scheme
+}
+
+func (u *UrlInfo) GetHost() string {
+	return u.Host
+}
+
+func (u *UrlInfo) GetIPAndPort() (ip string, port int) {
+
+	ss := strings.Split(u.Host, ":")
+	if len(ss) == 0 {
+		return
+	}
+
+	if len(ss) == 1 {
+		port = u.getSchemePort()
+	} else {
+		port, _ = strconv.Atoi(ss[1])
+	}
+	ip = ss[0]
+	return
+}
+
+func (u *UrlInfo) GetPath() string {
+	return u.Path
+}
+
+func (u *UrlInfo) GetUser() string {
+	return u.User
+}
+
+func (u *UrlInfo) GetPassword() string {
+	return u.Password
+}
+
+func (u *UrlInfo) GetOpaque() string {
+	return u.Opaque
+}
+
+func (u *UrlInfo) GetFragment() string {
+	return u.Fragment
+}
+
+func (u *UrlInfo) GetQueries() map[string]string {
+	return u.Queries
+}
+
+func (u *UrlInfo) GetForceQuery() bool {
+	return u.ForceQuery
+}
+
+func (u *UrlInfo) getSchemePort() (port int) {
+	switch u.Scheme {
+	case URL_SCHEME_HTTPS:
+		port = 443
+	case URL_SCHEME_HTTP:
+		port = 80
+	case URL_SCHEME_MYSQL:
+		port = 3306
+	case URL_SCHEME_POSTGRES:
+		port = 5432
+	case URL_SCHEME_REDIS:
+		port = 6379
+	case URL_SCHEME_ETCD:
+		port = 2379
+	case URL_SCHEME_KAFKA:
+		port = 9092
+	case URL_SCHEME_MSSQL:
+		port = 1433
+	case URL_SCHEME_ZOOKEEPER:
+		port = 2181
+	default:
+		port = 80
 	}
 	return
 }
