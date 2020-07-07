@@ -50,7 +50,11 @@ func (w *SocketClient) GetRemoteAddr() (addr string) {
 	return w.sock.GetRemoteAddr()
 }
 
-func (w *SocketClient) Closed() bool {
+func (w *SocketClient) Close() (err error) {
+	return w.sock.Close()
+}
+
+func (w *SocketClient) IsClosed() bool {
 	return w.closed
 }
 
