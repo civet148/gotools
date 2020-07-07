@@ -16,10 +16,21 @@ const (
 	URL_SCHEME_UDP6 = "udp6"
 	URL_SCHEME_WS   = "ws"
 	URL_SCHEME_WSS  = "wss"
+	URL_SCHEME_UNIX = "unix"
 )
 
 const (
 	PACK_FRAGMENT_MAX = 1500
+)
+
+const (
+	NETWORK_TCP   = "tcp"
+	NETWORK_TCPv4 = "tcp4"
+	NETWORK_TCPv6 = "tcp6"
+	NETWORK_UDP   = "udp"
+	NETWORK_UDPv4 = "udp4"
+	NETWORK_UDPv6 = "udp6"
+	NETWORK_UNIX  = "unix"
 )
 
 type SocketHandler interface {
@@ -43,9 +54,10 @@ type Socket interface {
 type SocketType int
 
 const (
-	SocketType_TCP SocketType = 1
-	SocketType_WEB SocketType = 2
-	SocketType_UDP SocketType = 3
+	SocketType_TCP  SocketType = 1
+	SocketType_WEB  SocketType = 2
+	SocketType_UDP  SocketType = 3
+	SocketType_UNIX SocketType = 4
 )
 
 func (s SocketType) GoString() string {
@@ -60,6 +72,8 @@ func (s SocketType) String() string {
 		return "SocketType_WEB"
 	case SocketType_UDP:
 		return "SocketType_UDP"
+	case SocketType_UNIX:
+		return "SocketType_UNIX"
 	}
 	return "SocketType_Unknown"
 }
@@ -114,6 +128,8 @@ func createSocket(url string) (s Socket) {
 		s = newSocket(SocketType_WEB, ui)
 	case URL_SCHEME_UDP, URL_SCHEME_UDP4, URL_SCHEME_UDP6:
 		s = newSocket(SocketType_UDP, ui)
+	case URL_SCHEME_UNIX:
+		s = newSocket(SocketType_UNIX, ui)
 	default:
 		{
 			log.Errorf("unknown scheme [%v] in url [%v]", ui.Scheme, url)

@@ -9,11 +9,6 @@ import (
 	"strings"
 )
 
-const (
-	UDPv4 = "udp4"
-	UDPv6 = "udp6"
-)
-
 type socket struct {
 	ui     *parser.UrlInfo
 	conn   *net.UDPConn
@@ -35,14 +30,14 @@ func (s *socket) Listen() (err error) {
 
 	var strAddr = s.ui.GetHost()
 	var udpAddr *net.UDPAddr
-	var networkVer = s.getVer()
+	var network = s.getNetwork()
 
-	if udpAddr, err = net.ResolveUDPAddr(networkVer, strAddr); err != nil {
+	if udpAddr, err = net.ResolveUDPAddr(network, strAddr); err != nil {
 		log.Errorf("resolve UDP addr [%v] error [%v]", strAddr, err.Error())
 		return
 	}
 
-	if s.conn, err = net.ListenUDP(networkVer, udpAddr); err != nil {
+	if s.conn, err = net.ListenUDP(network, udpAddr); err != nil {
 		log.Errorf("listen UDP addr [%v] error [%v]", strAddr, err.Error())
 		return
 	}
@@ -61,7 +56,7 @@ func (s *socket) Connect() (err error) {
 func (s *socket) Send(data []byte, to ...string) (n int, err error) {
 
 	var udpAddr *net.UDPAddr
-	var networkVer = s.getVer()
+	var network = s.getNetwork()
 
 	if len(to) == 0 {
 		return 0, fmt.Errorf("UDP send method to parameter required")
@@ -74,7 +69,7 @@ func (s *socket) Send(data []byte, to ...string) (n int, err error) {
 		strToAddr = strToAddr[nIndex+nSep:]
 	}
 
-	if udpAddr, err = net.ResolveUDPAddr(networkVer, strToAddr); err != nil {
+	if udpAddr, err = net.ResolveUDPAddr(network, strToAddr); err != nil {
 		log.Errorf("resolve UDP addr [%v] error [%v]", strToAddr, err.Error())
 		return
 	}
@@ -112,11 +107,11 @@ func (s *socket) GetSocketType() wss.SocketType {
 	return wss.SocketType_UDP
 }
 
-func (s *socket) getVer() (ver string) {
+func (s *socket) getNetwork() string {
 	if s.isUDP6() {
-		ver = UDPv6
+		return wss.NETWORK_UDPv6
 	}
-	return UDPv4
+	return wss.NETWORK_UDPv4
 }
 
 func (s *socket) isUDP6() (ok bool) {

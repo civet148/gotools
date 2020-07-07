@@ -1,4 +1,4 @@
-package tcpsock
+package unixsock
 
 import (
 	"fmt"
@@ -6,17 +6,19 @@ import (
 	"github.com/civet148/gotools/parser"
 	"github.com/civet148/gotools/wss"
 	"net"
+	"os"
+	"strings"
 )
 
 type socket struct {
 	ui       *parser.UrlInfo
 	conn     net.Conn
-	listener net.Listener
+	listener *net.UnixListener
 	closed   bool
 }
 
 func init() {
-	_ = wss.Register(wss.SocketType_TCP, NewSocket)
+	_ = wss.Register(wss.SocketType_UNIX, NewSocket)
 }
 
 func NewSocket(ui *parser.UrlInfo) wss.Socket {
@@ -28,11 +30,21 @@ func NewSocket(ui *parser.UrlInfo) wss.Socket {
 
 func (s *socket) Listen() (err error) {
 	var network = s.getNetwork()
-	strAddr := s.ui.GetHost()
-	log.Debugf("trying listen [%v] protocol [%v]", strAddr, s.ui.GetScheme())
-	s.listener, err = net.Listen(network, strAddr)
+	addr := s.getUnixSockFile()
+	if err = os.Remove(addr); err != nil {
+		log.Errorf("remove file error [%v]", err.Error())
+		return
+	}
+	var unixAddr *net.UnixAddr
+	unixAddr, err = net.ResolveUnixAddr(network, s.ui.GetPath())
 	if err != nil {
-		log.Errorf("listen tcp address [%s] failed", strAddr)
+		err = fmt.Errorf("Cannot resolve unix addr: " + err.Error())
+		log.Errorf(err.Error())
+		return
+	}
+	log.Debugf("trying listen [%v] protocol [%v]", addr, s.ui.GetScheme())
+	if s.listener, err = net.ListenUnix("unix", unixAddr); err != nil {
+		log.Errorf("listen tcp address [%s] failed", addr)
 		return
 	}
 	return
@@ -45,20 +57,21 @@ func (s *socket) Accept() wss.Socket {
 	}
 	return &socket{
 		conn: conn,
+		ui:   s.ui,
 	}
 }
 
 func (s *socket) Connect() (err error) {
 	var network = s.getNetwork()
-	addr := s.ui.GetHost()
-	var tcpAddr *net.TCPAddr
-	tcpAddr, err = net.ResolveTCPAddr(network, addr)
+	addr := s.getUnixSockFile()
+	var unixAddr *net.UnixAddr
+	unixAddr, err = net.ResolveUnixAddr(network, addr)
 	if err != nil {
 		log.Errorf("resolve tcp address [%s] failed, error [%s]", addr, err)
 		return err
 	}
 
-	s.conn, err = net.DialTCP(network, nil, tcpAddr)
+	s.conn, err = net.DialUnix(network, nil, unixAddr)
 	if err != nil {
 		log.Errorf("dial tcp to [%s] failed", addr)
 		return err
@@ -103,7 +116,7 @@ func (s *socket) Recv(length int) (data []byte, from string, err error) {
 	if recv < length {
 		data = data[:recv]
 	}
-	from = s.conn.RemoteAddr().String()
+	from = s.GetLocalAddr()
 	return
 }
 
@@ -115,37 +128,32 @@ func (s *socket) Close() (err error) {
 	return s.conn.Close()
 }
 
-func (s *socket) GetLocalAddr() string {
-	if s.conn == nil {
-		return s.ui.GetHost()
-	}
-	return s.conn.LocalAddr().String()
+func (s *socket) GetLocalAddr() (strAddr string) {
+	return s.getUnixSockFile()
 }
 
-func (s *socket) GetRemoteAddr() string {
-	if s.conn == nil {
-		return ""
-	}
-	return s.conn.RemoteAddr().String()
+func (s *socket) GetRemoteAddr() (strAddr string) {
+	return s.getUnixSockFile()
 }
 
 func (s *socket) GetSocketType() wss.SocketType {
-	return wss.SocketType_TCP
+	return wss.SocketType_UNIX
+}
+
+func (s *socket) getUnixSockFile() (strSockFile string) {
+
+	if s.ui == nil {
+		return
+	}
+	strSockFile = s.ui.GetPath()
+	if !strings.HasSuffix(strSockFile, "sock") {
+		panic("unix socket must .sock as file suffix")
+	}
+	return
 }
 
 func (s *socket) getNetwork() string {
-	if s.isTcp6() {
-		return wss.NETWORK_TCPv6
-	}
-	return wss.NETWORK_TCPv4
-}
-
-func (s *socket) isTcp6() (ok bool) {
-	scheme := s.ui.GetScheme()
-	if scheme == wss.URL_SCHEME_TCP6 {
-		return true
-	}
-	return
+	return wss.NETWORK_UNIX
 }
 
 func (s *socket) makeBuffer(length int) []byte {
