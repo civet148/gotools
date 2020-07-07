@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/wss"
-	_ "github.com/civet148/gotools/wss/tcpsock" //required (register tcp socket instance)
+	_ "github.com/civet148/gotools/wss/tcpsock" //required (register socket instance)
 	"time"
 )
 
