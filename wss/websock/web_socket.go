@@ -118,6 +118,7 @@ func (s *socket) Close() (err error) {
 	if s.conn == nil {
 		return
 	}
+	s.closed = true
 	return s.conn.Close()
 }
 

@@ -1,6 +1,7 @@
 package tcpsock
 
 import (
+	"fmt"
 	"github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/parser"
 	"github.com/civet148/gotools/wss"
@@ -16,6 +17,7 @@ type socket struct {
 	ui       *parser.UrlInfo
 	conn     net.Conn
 	listener net.Listener
+	closed   bool
 }
 
 func init() {
@@ -111,14 +113,24 @@ func (s *socket) Recv(length int) (data []byte, from string, err error) {
 }
 
 func (s *socket) Close() (err error) {
+	if s.conn == nil {
+		return fmt.Errorf("socket is nil")
+	}
+	s.closed = true
 	return s.conn.Close()
 }
 
 func (s *socket) GetLocalAddr() string {
+	if s.conn == nil {
+		return ""
+	}
 	return s.conn.LocalAddr().String()
 }
 
 func (s *socket) GetRemoteAddr() string {
+	if s.conn == nil {
+		return ""
+	}
 	return s.conn.RemoteAddr().String()
 }
 

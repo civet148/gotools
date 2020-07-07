@@ -15,8 +15,9 @@ const (
 )
 
 type socket struct {
-	ui   *parser.UrlInfo
-	conn *net.UDPConn
+	ui     *parser.UrlInfo
+	conn   *net.UDPConn
+	closed bool
 }
 
 func init() {
@@ -95,6 +96,7 @@ func (s *socket) Close() (err error) {
 	if s.conn == nil {
 		return fmt.Errorf("socket is nil")
 	}
+	s.closed = true
 	return s.conn.Close()
 }
 
