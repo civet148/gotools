@@ -102,8 +102,8 @@ func (s *socket) GetLocalAddr() string {
 	return s.conn.LocalAddr().String()
 }
 
-func (s *socket) GetRemoteAddr() string {
-	return s.conn.RemoteAddr().String()
+func (s *socket) GetRemoteAddr() (addr string) {
+	return
 }
 
 func (s *socket) GetSocketType() wss.SocketType {

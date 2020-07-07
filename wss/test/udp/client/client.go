@@ -28,6 +28,7 @@ func client(strUrl string) (err error) {
 		return
 	}
 	for {
+		log.Debugf("local address [%v] remote address [%v]", c.GetLocalAddr(), c.GetRemoteAddr())
 		if _, err := c.Send([]byte(UDP_DATA_PING), UDP_SERVER_ADDR); err != nil {
 			log.Errorf(err.Error())
 			break
