@@ -16,7 +16,7 @@ type Server struct {
 }
 
 func main() {
-	server("ws://127.0.0.1:6668/websocket")
+	server("ws://0.0.0.0:6668/websocket")
 	var c = make(chan bool, 1)
 	<-c //block main go routine
 }

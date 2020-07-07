@@ -9,7 +9,7 @@ import (
 const (
 	UDP_DATA_PING  = "ping"
 	UDP_DATA_PONG  = "pong"
-	UDP_SERVER_URL = "udp://127.0.0.1:6665"
+	UDP_SERVER_URL = "udp://0.0.0.0:6665"
 )
 
 type Server struct {

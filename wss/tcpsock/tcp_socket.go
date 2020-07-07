@@ -122,7 +122,7 @@ func (s *socket) Close() (err error) {
 
 func (s *socket) GetLocalAddr() string {
 	if s.conn == nil {
-		return ""
+		return s.ui.GetHost()
 	}
 	return s.conn.LocalAddr().String()
 }

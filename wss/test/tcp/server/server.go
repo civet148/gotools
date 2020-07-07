@@ -17,7 +17,7 @@ type Server struct {
 
 func main() {
 
-	var url = "tcp://127.0.0.1:6666"
+	var url = "tcp://0.0.0.0:6666"
 	server(url)
 
 	var c = make(chan bool, 1)
