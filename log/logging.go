@@ -3,7 +3,7 @@ package log
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/mattn/go-colorable"
+	//"github.com/mattn/go-colorable"
 	"io/ioutil"
 	"log"
 	"net/url"
@@ -91,7 +91,7 @@ var (
    }
 */
 
-var colorStdout = colorable.NewColorableStdout()
+//var colorStdout = colorable.NewColorableStdout()
 
 func init() {
 	option.FileSize = 1024 //MB
@@ -388,7 +388,7 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 
 	//打印到终端屏幕
 	if !option.CloseConsole {
-		_, _ = fmt.Fprintln(colorStdout, output)
+		_, _ = fmt.Fprintln(os.Stdout, output)
 	}
 
 	//输出到文件（如果Open函数传入了正确的文件路径）
