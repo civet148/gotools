@@ -25,7 +25,6 @@ func NewSocket(ui *parser.UrlInfo) wss.Socket {
 	return &socket{
 		ui:        ui,
 		accepting: make(chan *websocket.Conn, 1000),
-		closed:    false,
 	}
 }
 
@@ -51,23 +50,20 @@ func (s *socket) Listen() (err error) {
 
 func (s *socket) Accept() wss.Socket {
 
-	if !s.closed {
-		var c *websocket.Conn
-		select {
-		case c = <-s.accepting:
-			{
-				log.Debugf("accepted client [%v]", c.RemoteAddr().String())
-				c.SetCloseHandler(s.webSocketCloseHandler)
-				c.SetPingHandler(s.websocketPingHandler)
-				c.SetPongHandler(s.websocketPongHandler)
-				return &socket{
-					conn: c,
-					ui:   s.ui,
-				}
+	var c *websocket.Conn
+	select {
+	case c = <-s.accepting:
+		{
+			log.Debugf("accepted client [%v]", c.RemoteAddr().String())
+			c.SetCloseHandler(s.webSocketCloseHandler)
+			c.SetPingHandler(s.websocketPingHandler)
+			c.SetPongHandler(s.websocketPongHandler)
+			return &socket{
+				conn: c,
+				ui:   s.ui,
 			}
 		}
 	}
-	log.Warnf("web socket server is stopped")
 	return nil
 }
 
@@ -114,8 +110,14 @@ func (s *socket) Recv(length int) (data []byte, from string, err error) {
 
 func (s *socket) Close() (err error) {
 
+	if s.closed {
+		err = fmt.Errorf("socket already closed")
+		return
+	}
 	s.closed = true
 	if s.conn == nil {
+		err = fmt.Errorf("socket is nil")
+		log.Error(err.Error())
 		return
 	}
 	s.closed = true
