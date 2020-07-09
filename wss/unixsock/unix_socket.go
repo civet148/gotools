@@ -121,8 +121,14 @@ func (s *socket) Recv(length int) (data []byte, from string, err error) {
 }
 
 func (s *socket) Close() (err error) {
+	if s.closed {
+		err = fmt.Errorf("socket already closed")
+		return
+	}
 	if s.conn == nil {
-		return fmt.Errorf("socket is nil")
+		err = fmt.Errorf("socket is nil")
+		log.Error(err.Error())
+		return
 	}
 	s.closed = true
 	return s.conn.Close()

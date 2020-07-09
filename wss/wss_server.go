@@ -15,7 +15,6 @@ type SocketServer struct {
 	quiting   chan Socket              //client connection closed
 	clients   map[Socket]*SocketClient //socket clients
 	locker    *sync.Mutex              //locker mutex
-	running   bool                     //service running ?
 }
 
 func init() {
@@ -34,7 +33,6 @@ func NewServer(url string) *SocketServer {
 		accepting: make(chan Socket, 1000),
 		quiting:   make(chan Socket, 1000),
 		clients:   make(map[Socket]*SocketClient, 0),
-		running:   true,
 	}
 }
 
@@ -52,10 +50,6 @@ func (w *SocketServer) Listen(handler SocketHandler) (err error) {
 		go func() {
 			log.Debugf("start goroutine for channel event accepting/quiting")
 			for {
-				if !w.running {
-					log.Debugf("accepting/quiting channel service loop break")
-					break //service loop break
-				}
 				select {
 				case s := <-w.accepting: //client connection coming...
 					w.onAccept(s)
@@ -70,17 +64,9 @@ func (w *SocketServer) Listen(handler SocketHandler) (err error) {
 		go func() {
 			log.Debugf("start goroutine for accept new connection")
 			for {
-				if !w.running {
-					log.Debugf("accept service loop break")
-					break //service loop break
+				if s := w.sock.Accept(); s != nil { //socket accepting...
+					w.accepting <- s
 				}
-				s := w.sock.Accept()
-				if err != nil {
-					log.Fatal("accept failed error [%v]", err.Error())
-					return
-				}
-				//socket quiting...
-				w.accepting <- s
 			}
 		}()
 	} else {
@@ -89,7 +75,12 @@ func (w *SocketServer) Listen(handler SocketHandler) (err error) {
 	return
 }
 
-func (w *SocketServer) Close(client *SocketClient) (err error) {
+func (w *SocketServer) Close() {
+	w.sock.Close()
+	w.closeClientAll()
+}
+
+func (w *SocketServer) CloseClient(client *SocketClient) (err error) {
 	return w.closeSocket(client.sock)
 }
 
@@ -167,7 +158,7 @@ func (w *SocketServer) closeClientAll() {
 	w.lock()
 	defer w.unlock()
 	for s, _ := range w.clients {
-		w.onClose(s)
+		_ = s.Close()
 		delete(w.clients, s)
 	}
 }

@@ -128,16 +128,20 @@ func getResultStoreKey(strFile, strFunc string) string {
 	return fmt.Sprintf("%v:%v", strFile, strFunc)
 }
 
-func getRoutineId() string {
+func getRoutineId() (strRoutine string) {
 
 	strStack := string(debug.Stack())
 	nIdx := strings.IndexAny(strStack, ":\r\n")
 	if nIdx > 0 {
-		return strStack[:nIdx]
+		strRoutine = strStack[:nIdx]
+		strings.TrimSpace(strRoutine)
+		nIdx = strings.Index(strRoutine, "[")
+		if nIdx > 0 {
+			strRoutine = strRoutine[:nIdx-1]
+		}
+		return
 	}
 	return "<unknown routine>"
-	//id := uuid.New()
-	//return id.String()
 }
 
 //进入方法(enter function)

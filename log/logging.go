@@ -3,7 +3,7 @@ package log
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/mattn/go-colorable"
+	//"github.com/mattn/go-colorable"
 	"io/ioutil"
 	"log"
 	"net/url"
@@ -91,7 +91,7 @@ var (
    }
 */
 
-var colorStdout = colorable.NewColorableStdout()
+//var colorStdout = colorable.NewColorableStdout()
 
 func init() {
 	option.FileSize = 1024 //MB
@@ -349,6 +349,7 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 	var colorTimeName string
 
 	strTimeFmt := fmt.Sprintf("%v", time.Now().Format("2006-01-02 15:04:05.000000"))
+	strRoutine := fmt.Sprintf("{%v}", getRoutineId())
 	Name := LevelName[level]
 	switch level {
 	case LEVEL_DEBUG:
@@ -381,14 +382,14 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 
 	switch runtime.GOOS {
 	case "windows": //Windows终端不再支持颜色显示
-		output = time.Now().Format("2006-01-02 15:04:05") + " " + Name + " " + code + " " + inf
+		output = strTimeFmt + " " + Name + " " + strRoutine + " " + code + " " + inf
 	default: //Unix类终端支持颜色显示
-		output = "\033[1m" + colorTimeName + " " + code + "\033[0m " + inf
+		output = "\033[1m" + colorTimeName + " " + strRoutine + " " + code + "\033[0m " + inf
 	}
 
 	//打印到终端屏幕
 	if !option.CloseConsole {
-		_, _ = fmt.Fprintln(colorStdout, output)
+		_, _ = fmt.Fprintln(os.Stdout, output)
 	}
 
 	//输出到文件（如果Open函数传入了正确的文件路径）
@@ -412,7 +413,7 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 			}
 		}
 
-		logger.Println(Name + " " + code + " " + inf)
+		logger.Println(Name + " " + strRoutine + " " + code + " " + inf)
 	}
 	return
 }

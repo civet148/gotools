@@ -3,8 +3,7 @@ package main
 import (
 	"github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/wss"
-	_ "github.com/civet148/gotools/wss/tcpsock" //required (register tcp socket instance)
-	"time"
+	_ "github.com/civet148/gotools/wss/tcpsock" //required (register socket instance)
 )
 
 const (
@@ -18,25 +17,32 @@ func main() {
 }
 
 func client(strUrl string) {
-	c := wss.NewClient()
-	if err := c.Connect(strUrl); err != nil {
-		log.Errorf(err.Error())
-		return
-	}
 
+	var count int
 	for {
-		if _, err := c.Send([]byte(TCP_DATA_PING)); err != nil {
+		c := wss.NewClient()
+		if err := c.Connect(strUrl); err != nil {
 			log.Errorf(err.Error())
-			break
+			return
 		}
+		count++
+		log.Infof("total connections [%v]", count)
+		for {
+			if _, err := c.Send([]byte(TCP_DATA_PING)); err != nil {
+				log.Errorf(err.Error())
+				break
+			}
 
-		if data, from, err := c.Recv(len(TCP_DATA_PONG)); err != nil {
-			log.Error(err.Error())
-			break
-		} else {
-			log.Infof("tcp client received data [%s] length [%v] from [%v]", string(data), len(data), from)
+			if data, from, err := c.Recv(len(TCP_DATA_PONG)); err != nil {
+				log.Error(err.Error())
+				break
+			} else {
+				log.Infof("tcp client received data [%s] length [%v] from [%v]", string(data), len(data), from)
+			}
+
+			//time.Sleep(1 * time.Second)
+			//_ = c.Close()
+			//break
 		}
-
-		time.Sleep(3 * time.Second)
 	}
 }
