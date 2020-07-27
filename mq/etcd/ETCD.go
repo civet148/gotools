@@ -17,15 +17,16 @@ const (
 )
 
 type EtcdMQ struct {
-	mode   mq.Mode
-	ex     string //交换器名称
-	tag    string //消费者标签
-	url    string //服务器连接URL
-	config clientv3.Config
-	conn   *clientv3.Client //连接会话
-	lock   sync.Mutex       //断线重连锁
-	closed bool             //远程服务器是否已断开连接
-	debug  bool             //开启或关闭调试信息
+	mode    mq.Mode
+	ex      string //交换器名称
+	tag     string //消费者标签
+	url     string //服务器连接URL
+	config  clientv3.Config
+	conn    *clientv3.Client //连接会话
+	lock    sync.Mutex       //断线重连锁
+	closed  bool             //远程服务器是否已断开连接
+	debug   bool             //开启或关闭调试信息
+	closing chan bool        //主动关闭通知通道
 }
 
 func init() {
@@ -34,7 +35,14 @@ func init() {
 
 func NewMQ() mq.IReactMQ {
 
-	return &EtcdMQ{}
+	return &EtcdMQ{
+		closing: make(chan bool, 1),
+	}
+}
+
+//关闭MQ
+func (this *EtcdMQ) Close() {
+	this.closing <- true
 }
 
 //判定是否服务器重启断开客户端连接
@@ -104,15 +112,22 @@ func (this *EtcdMQ) Reconnect() (err error) {
 	return
 }
 
-func (this *EtcdMQ) Publish(strRoutingKey, strData string) (err error) {
+/*
+* @brief 	消息发布接口定义(仅支持字符串类型消息)
+* @param 	strBindingKey 	队列绑定Key(topic)
+* @param	strQueueName 	队列名称(group)
+* @param	key 		消息KEY(仅kafka必填，其他MQ类型默认填PRODUCER_KEY_NULL)
+* @param	value 		消息数据
+* @return   err 发布失败返回具体错误信息
+ */
+func (this *EtcdMQ) Publish(strBindingKey, strQueueName, key string, value string) (err error) {
 	if this.closed {
-		err = fmt.Errorf("Connection still invalid...")
+		err = fmt.Errorf("connection still invalid")
 		return
 	}
-	if this.debug {
-		log.Info("[PRODUCER] mode [%v] key [%v] data [%v]", this.mode.String(), strRoutingKey, strData)
-	}
-	_, err = this.conn.Put(context.Background(), strRoutingKey, strData)
+
+	strData := string(value)
+	_, err = this.conn.Put(context.Background(), strBindingKey, strData)
 	if err != nil {
 		if strings.Contains(err.Error(), "is not open") ||
 			strings.Contains(err.Error(), "504") { //服务器断开连接
@@ -121,19 +136,27 @@ func (this *EtcdMQ) Publish(strRoutingKey, strData string) (err error) {
 		return fmt.Errorf("Exchange Publish: %s", err)
 	}
 
-	//log.Debug("Publish direct to exchange [%v] routing key [%v] data [%v] ok", this.ex, strRoutingKey, strData)
+	//log.Debug("Publish direct to exchange [%v] routing key [%v] data [%v] ok", this.ex, strBindingKey, strData)
 	return
 }
 
-func (this *EtcdMQ) Consume(strBindingKey, strQueueName string, cb mq.FnConsumeCb) (err error) {
+/*
+* @brief 	消息消费接口定义
+* @param 	strBindingKey 	队列绑定Key
+* @param	strQueueName 	队列名称
+* @param    handler         消费回调处理对象
+* @return   err 成功返回nil，失败返回返回具体错误信息
+* @remark   服务器异常或重启时内部会自动重连服务器
+ */
+func (this *EtcdMQ) Consume(strBindingKey, strQueueName string, handler mq.ReactHandler) (err error) {
 
 	switch this.mode {
 	case mq.Mode_Direct:
-		return this.consumeDirect(strBindingKey, strQueueName, cb)
+		return this.consumeDirect(strBindingKey, strQueueName, handler)
 	case mq.Mode_Topic:
-		return this.consumeTopic(strBindingKey, strQueueName, cb)
+		return this.consumeTopic(strBindingKey, strQueueName, handler)
 	case mq.Mode_Fanout:
-		return this.consumeFanout(strBindingKey, strQueueName, cb)
+		return this.consumeFanout(strBindingKey, strQueueName, handler)
 	default:
 		return fmt.Errorf("Unknown mode [%v]", this.mode)
 	}
@@ -153,7 +176,7 @@ func (this *EtcdMQ) getQueueName(strKeyName string) (name string) {
 	return
 }
 
-func (this *EtcdMQ) consumeDirect(strBindingKey, strQueueName string, cb mq.FnConsumeCb) (err error) {
+func (this *EtcdMQ) consumeDirect(strBindingKey, strQueueName string, handler mq.ReactHandler) (err error) {
 	var strData string
 	wc := this.conn.Watch(context.TODO(), strBindingKey)
 	/*getResp,err := this.conn.KV.Get(context.TODO(),strBindingKey,clientv3.WithPrevKV())
@@ -181,7 +204,7 @@ RETRY_CONSUME:
 		for v := range wc {
 			for _, e := range v.Events {
 				strData = string(e.Kv.Value)
-				cb(strData)
+				handler.OnConsume(mq.Adapter_ETCD, strBindingKey, strQueueName, mq.DEFAULT_DATA_KEY, strData)
 			}
 		}
 		if this.closed {
@@ -195,7 +218,7 @@ RETRY_CONSUME:
 	return
 }
 
-func (this *EtcdMQ) consumeTopic(strBindingKey, strQueueName string, cb mq.FnConsumeCb) (err error) {
+func (this *EtcdMQ) consumeTopic(strBindingKey, strQueueName string, handler mq.ReactHandler) (err error) {
 	var strData string
 	go func() {
 		wc := this.conn.Watch(context.Background(), strBindingKey) //, clientv3.WithPrefix()
@@ -212,7 +235,7 @@ func (this *EtcdMQ) consumeTopic(strBindingKey, strQueueName string, cb mq.FnCon
 			for v := range wc {
 				for _, e := range v.Events {
 					strData = string(e.Kv.Value)
-					cb(strData)
+					handler.OnConsume(mq.Adapter_ETCD, strBindingKey, strQueueName, mq.DEFAULT_DATA_KEY, strData)
 				}
 			}
 			if this.closed {
@@ -227,7 +250,7 @@ func (this *EtcdMQ) consumeTopic(strBindingKey, strQueueName string, cb mq.FnCon
 	return
 }
 
-func (this *EtcdMQ) consumeFanout(strBindingKey, strQueueName string, cb mq.FnConsumeCb) (err error) {
+func (this *EtcdMQ) consumeFanout(strBindingKey, strQueueName string, handler mq.ReactHandler) (err error) {
 
 	var strData string
 	wc := this.conn.Watch(context.Background(), strBindingKey, clientv3.WithPrefix(), clientv3.WithPrevKV())
@@ -244,7 +267,7 @@ RETRY_CONSUME:
 		for v := range wc {
 			for _, e := range v.Events {
 				strData = string(e.Kv.Value)
-				cb(strData)
+				handler.OnConsume(mq.Adapter_ETCD, strBindingKey, strQueueName, mq.DEFAULT_DATA_KEY, strData)
 			}
 		}
 		if this.closed {
@@ -284,4 +307,12 @@ func (this *EtcdMQ) consumerTag(mode mq.Mode) (tag string) {
 
 	tag = fmt.Sprintf("consumer.tag.%v#%v", mode.String(), comm.GenRandStrMD5(16))
 	return
+}
+
+/*
+* @brief 	获取当前MQ类型
+* @param 	adapter  MQ类型
+ */
+func (this *EtcdMQ) GetAdapter() (adapter mq.Adapter) {
+	return mq.Adapter_ETCD
 }

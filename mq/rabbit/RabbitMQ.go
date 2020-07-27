@@ -2,8 +2,8 @@ package rabbit
 
 import (
 	"fmt"
-	log "github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/comm"
+	log "github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/mq"
 	"github.com/streadway/amqp"
 	"strings"
@@ -18,18 +18,26 @@ type RabbitMQ struct {
 	url      string           //服务器连接URL
 	conn     *amqp.Connection //AMQP连接会话
 	producer *amqp.Channel    //生产者信道
-	lock   sync.Mutex //断线重连锁
-	closed bool       //远程服务器是否已断开连接
-	debug  bool //开启或关闭调试信息
+	lock     sync.Mutex       //断线重连锁
+	closed   bool             //远程服务器是否已断开连接
+	debug    bool             //开启或关闭调试信息
+	closing  chan bool        //主动关闭通知通道
 }
 
 func init() {
 	mq.Register(mq.Adapter_RabbitMQ, NewMQ)
 }
 
-func NewMQ() (mq.IReactMQ) {
+func NewMQ() mq.IReactMQ {
 
-	return &RabbitMQ{}
+	return &RabbitMQ{
+		closing: make(chan bool, 1),
+	}
+}
+
+//关闭MQ
+func (this *RabbitMQ) Close() {
+	this.closing <- true
 }
 
 //判定是否服务器重启断开客户端连接
@@ -94,49 +102,60 @@ func (this *RabbitMQ) Reconnect() (err error) {
 	return
 }
 
-func (this *RabbitMQ) Publish(strRoutingKey, strData string) (err error) {
+/*
+* @brief 	消息发布接口定义(仅支持字符串类型消息)
+* @param 	strBindingKey 	队列绑定Key(topic)
+* @param	strQueueName 	队列名称(group)
+* @param	key 		消息KEY(仅kafka必填，其他MQ类型默认填PRODUCER_KEY_NULL)
+* @param	value 		消息数据
+* @return   err 发布失败返回具体错误信息
+ */
+func (this *RabbitMQ) Publish(strBindingKey, strQueueName, key string, value string) (err error) {
 
 	if this.closed {
-
-		err = fmt.Errorf("Connection still invalid...")
+		err = fmt.Errorf("connection still invalid")
 		return
 	}
-	if this.debug {
-		log.Info("[PRODUCER] mode [%v] key [%v] data [%v]", this.mode.String(), strRoutingKey, strData)
-	}
 
-	if err = this.producer.Publish (
-		this.ex, 	// publish to an exchange
-		strRoutingKey,            // routing to 0 or more queues
-		false,                    // mandatory
-		false,                    // immediate
+	if err = this.producer.Publish(
+		this.ex,       // publish to an exchange
+		strBindingKey, // routing to 0 or more queues
+		false,         // mandatory
+		false,         // immediate
 		amqp.Publishing{
 			Headers:         amqp.Table{},
 			ContentType:     "text/plain",
 			ContentEncoding: "",
-			Body:            []byte(strData),
+			Body:            []byte(value),
 			DeliveryMode:    amqp.Transient, // 1=non-persistent, 2=persistent
 			Priority:        0,              // 0-9
 			// a bunch of application/implementation-specific fields
 		},
 	); err != nil {
-		if  strings.Contains(err.Error(), "is not open") ||
-			strings.Contains(err.Error(),"504") {//服务器断开连接
+		if strings.Contains(err.Error(), "is not open") ||
+			strings.Contains(err.Error(), "504") { //服务器断开连接
 			this.closed = true //标记连接断开
 		}
 		return fmt.Errorf("Exchange Publish: %s", err)
 	}
 
-	//log.Debug("Publish direct to exchange [%v] routing key [%v] data [%v] ok", this.ex, strRoutingKey, strData)
+	//log.Debug("Publish direct to exchange [%v] routing key [%v] data [%v] ok", this.ex, strBindingKey, strData)
 	return
 }
 
-
-func (this *RabbitMQ) Consume(strBidingKey, strQueueName string, cb mq.FnConsumeCb) (err error) {
+/*
+* @brief 	消息消费接口定义
+* @param 	strBindingKey 	队列绑定Key
+* @param	strQueueName 	队列名称
+* @param    handler         消费回调处理对象
+* @return   err 成功返回nil，失败返回返回具体错误信息
+* @remark   服务器异常或重启时内部会自动重连服务器
+ */
+func (this *RabbitMQ) Consume(strBindingKey, strQueueName string, handler mq.ReactHandler) (err error) {
 
 CONSUME_BEGIN:
 	if this.debug {
-		log.Info("[CONSUMER] mode [%v] key [%v] queue [%v]", this.mode.String(), strBidingKey, strQueueName)
+		log.Info("[CONSUMER] mode [%v] key [%v] queue [%v]", this.mode.String(), strBindingKey, strQueueName)
 	}
 	var channel *amqp.Channel
 	if channel, err = this.getChannel(); err != nil {
@@ -146,13 +165,13 @@ CONSUME_BEGIN:
 		return
 	}
 
-	queue, errQueue := channel.QueueDeclare (
+	queue, errQueue := channel.QueueDeclare(
 		strQueueName, // name of the queue
-		true,      // durable
-		false,     // delete when unused
-		false,     // exclusive
-		false,     // noWait
-		nil,       // arguments
+		true,         // durable
+		false,        // delete when unused
+		false,        // exclusive
+		false,        // noWait
+		nil,          // arguments
 	)
 	if errQueue != nil {
 		return fmt.Errorf("Queue Declare: %s", err)
@@ -160,25 +179,25 @@ CONSUME_BEGIN:
 
 	if this.debug {
 		log.Debug("declared Queue (%q %d messages, %d consumers), binding to Exchange (key %q)",
-			queue.Name, queue.Messages, queue.Consumers, strBidingKey)
+			queue.Name, queue.Messages, queue.Consumers, strBindingKey)
 	}
 
 	if err = channel.QueueBind(
-		queue.Name, // name of the queue
-		strBidingKey,        // bindingKey
-		this.ex,   // sourceExchange
-		false,      // noWait
-		nil,        // arguments
+		queue.Name,    // name of the queue
+		strBindingKey, // bindingKey
+		this.ex,       // sourceExchange
+		false,         // noWait
+		nil,           // arguments
 	); err != nil {
 		return fmt.Errorf("Queue Bind: %s", err)
 	}
 
 	if this.debug {
-		log.Debug("Queue bound to Exchange, starting Consume with binding key [%v] queue [%v]", strBidingKey, strQueueName)
+		log.Debug("Queue bound to Exchange, starting Consume with binding key [%v] queue [%v]", strBindingKey, strQueueName)
 	}
 	deliveries, errConsume := channel.Consume(
 		queue.Name, // name
-		this.tag,      // consumerTag,
+		this.tag,   // consumerTag,
 		false,      // noAck
 		false,      // exclusive
 		false,      // noLocal
@@ -198,19 +217,19 @@ CONSUME_BEGIN:
 			log.Debug("got %dB delivery: [%v] %q", len(d.Body), d.DeliveryTag, d.Body)
 		}
 		d.Ack(false)
-		cb(string(d.Body))//收到数据后通过调用者传入的方法完成数据回调通知
+		handler.OnConsume(mq.Adapter_RabbitMQ, strBindingKey, strQueueName, mq.DEFAULT_DATA_KEY, string(d.Body)) //收到数据后通过调用者传入的方法完成数据回调通知
 	}
 
 	for {
-		this.closed = true //标记连接断开
-		channel.Close() //释放信道
-		if err = this.Reconnect(); err == nil {//重连成功，重新执行消费消息代码
+		this.closed = true                      //标记连接断开
+		channel.Close()                         //释放信道
+		if err = this.Reconnect(); err == nil { //重连成功，重新执行消费消息代码
 			if this.debug {
 				log.Info("Reconnect rabbitmq server ok, continue receive message...")
 			}
 			goto CONSUME_BEGIN
 		}
-		time.Sleep(5*time.Second) //5秒重连一次
+		time.Sleep(5 * time.Second) //5秒重连一次
 	}
 
 	if this.debug {
@@ -222,7 +241,7 @@ CONSUME_BEGIN:
 /*
 * @brief 	开启或关闭调式模式
 * @param 	enable 	true开启/false关闭
-*/
+ */
 func (this *RabbitMQ) Debug(enable bool) {
 
 	this.debug = enable
@@ -242,7 +261,7 @@ func (this *RabbitMQ) getChannel() (channel *amqp.Channel, err error) {
 		return
 	}
 
-	if err = channel.ExchangeDeclare (
+	if err = channel.ExchangeDeclare(
 		this.ex,            // exchange name
 		this.mode.String(), // type
 		true,               // durable
@@ -276,4 +295,13 @@ func (this *RabbitMQ) consumerTag(mode mq.Mode) (tag string) {
 
 	tag = fmt.Sprintf("consumer.tag.%v#%v", mode.String(), comm.GenRandStrMD5(16))
 	return
+}
+
+/*
+* @brief 	获取当前MQ类型
+* @param 	adapter  MQ类型
+ */
+func (this *RabbitMQ) GetAdapter() (adapter mq.Adapter) {
+
+	return mq.Adapter_RabbitMQ
 }
