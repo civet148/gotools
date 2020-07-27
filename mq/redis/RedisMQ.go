@@ -2,9 +2,9 @@ package redis
 
 import (
 	"fmt"
+	log "github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/mq"
 	"github.com/garyburd/redigo/redis"
-	log "github.com/civet148/gotools/log"
 	"strings"
 	"time"
 )
@@ -32,19 +32,21 @@ type RedisMQ struct {
 	url          string      //服务器连接URL
 	pool         *redis.Pool //Redis连接池
 	host, passwd string      //host Redis服务器地址:端口 passwd Redis认证密码
-	closed bool           //远程服务器是否已断开连接
-	debug  bool //开启或关闭调试信息
+	closed       bool        //远程服务器是否已断开连接
+	debug        bool        //开启或关闭调试信息
+	closing      chan bool   //主动关闭通知通道
 }
 
 func init() {
 	mq.Register(mq.Adapter_RedisMQ, NewMQ)
 }
 
-func NewMQ() (mq.IReactMQ) {
+func NewMQ() mq.IReactMQ {
 
-	return &RedisMQ{}
+	return &RedisMQ{
+		closing: make(chan bool, 1),
+	}
 }
-
 
 //Redis连接URL 有密码 "redis://123456@192.168.1.10:6379"
 //            没有密码则是 "redis://192.168.1.10:6379"
@@ -66,7 +68,7 @@ func (this *RedisMQ) Reconnect() (err error) {
 
 	if !strings.Contains(strConnUrl, strRedisScheme) {
 
-		err = fmt.Errorf("Url scheme illegal, prefix must be redis://")
+		err = fmt.Errorf("url scheme illegal, prefix must be redis://")
 		return
 	}
 	strConnUrl = strings.Replace(strConnUrl, strRedisScheme, "", -1)
@@ -78,7 +80,7 @@ func (this *RedisMQ) Reconnect() (err error) {
 		this.host = strRedisScheme + strConnUrl
 	}
 
-	if this.closed {//服务器断开连接，尝试PING服务器
+	if this.closed { //服务器断开连接，尝试PING服务器
 
 		c := this.pool.Get()
 		defer c.Close()
@@ -92,7 +94,7 @@ func (this *RedisMQ) Reconnect() (err error) {
 
 		this.pool = this.newPool()
 		if this.pool == nil {
-			err = fmt.Errorf("Create redis pool failed.")
+			err = fmt.Errorf("create redis pool failed")
 			return
 		}
 
@@ -107,33 +109,59 @@ func (this *RedisMQ) Reconnect() (err error) {
 	return
 }
 
-func (this *RedisMQ) IsClosed() (bool) {
+func (this *RedisMQ) Close() {
+	this.closing <- true
+}
+
+func (this *RedisMQ) IsClosed() bool {
 
 	return this.closed
 }
 
-func (this *RedisMQ) Publish(strRoutingKey, strData string) (err error) {
+/*
+* @brief 	消息发布接口定义(仅支持字符串类型消息)
+* @param 	strBindingKey 	队列绑定Key(topic)
+* @param	strQueueName 	队列名称(group)
+* @param	key 		消息KEY(仅kafka必填，其他MQ类型默认填PRODUCER_KEY_NULL)
+* @param	value 		消息数据
+* @return   err 发布失败返回具体错误信息
+ */
+func (this *RedisMQ) Publish(strBindingKey, strQueueName, key string, value string) (err error) {
 
 	//构造一个队列名
-	strRoutingKey = this.getQueueName(strRoutingKey)
+	strBindingKey = this.getQueueName(strBindingKey)
 	switch this.mode {
-	case mq.Mode_Direct: return this.publishDirect(strRoutingKey, strData)
-	case mq.Mode_Topic: return this.publishTopic(strRoutingKey, strData)
-	case mq.Mode_Fanout: return this.publishFanout(strRoutingKey, strData)
+	case mq.Mode_Direct:
+		return this.publishDirect(strBindingKey, key, value)
+	case mq.Mode_Topic:
+		return this.publishTopic(strBindingKey, key, value)
+	case mq.Mode_Fanout:
+		return this.publishFanout(strBindingKey, key, value)
 	default:
 		return fmt.Errorf("Unknown mode [%v]", this.mode)
 	}
 	return
 }
 
-func (this *RedisMQ) Consume(strBindingKey, strQueueName string, cb mq.FnConsumeCb) (err error) {
+/*
+* @brief 	消息消费接口定义
+* @param 	strBindingKey 	队列绑定Key
+* @param	strQueueName 	队列名称
+* @param    handler         消费回调处理对象
+* @return   err 成功返回nil，失败返回返回具体错误信息
+* @remark   服务器异常或重启时内部会自动重连服务器
+ */
+func (this *RedisMQ) Consume(strBindingKey, strQueueName string, handler mq.ReactHandler) (err error) {
 	//构造一个队列名
 	strBindingKey = this.getQueueName(strBindingKey)
 
 	switch this.mode {
-	case mq.Mode_Direct: return this.consumeDirect(strBindingKey, strQueueName, cb)
-	case mq.Mode_Topic: return this.consumeTopic(strBindingKey, strQueueName, cb)
-	case mq.Mode_Fanout: return this.consumeFanout(strBindingKey, strQueueName, cb)
+	case mq.Mode_Direct:
+		return this.consumeDirect(strBindingKey, strQueueName, handler)
+	case mq.Mode_Topic:
+		return this.consumeTopic(strBindingKey, strQueueName, handler)
+	case mq.Mode_Fanout:
+		return this.consumeFanout(strBindingKey, strQueueName, handler)
 	default:
 		return fmt.Errorf("Unknown mode [%v]", this.mode)
 	}
@@ -143,24 +171,31 @@ func (this *RedisMQ) Consume(strBindingKey, strQueueName string, cb mq.FnConsume
 /*
 * @brief 	开启或关闭调式模式
 * @param 	enable 	true开启/false关闭
-*/
+ */
 func (this *RedisMQ) Debug(enable bool) {
 
 	this.debug = enable
 }
 
-func (this *RedisMQ) publishDirect(strRoutingKey, strData string) (err error) {
+func (this *RedisMQ) publishDirect(strBindingKey, key string, value string) (err error) {
+
+	strData := string(value)
 
 	if this.debug {
-		log.Info("[PRODUCER] mode [%v] key [%v] data [%v]", this.mode.String(), strRoutingKey, strData)
+		log.Info("[PRODUCER] mode [%v] key [%v] data [%v]", this.mode.String(), strBindingKey, strData)
 	}
 
+	if this.IsClosed() {
+		err = fmt.Errorf("MQ is closed")
+		log.Error(err.Error())
+		return
+	}
 	c := this.pool.Get()
 	defer c.Close()
-	if _, err = redis.Int(c.Do(REDIS_CMD_LPUSH, strRoutingKey, strData)); err != nil {
+	if _, err = redis.Int(c.Do(REDIS_CMD_LPUSH, strBindingKey, strData)); err != nil {
 
 		if this.debug {
-			log.Error("Exec command [%v] error [%v]", REDIS_CMD_LPUSH, err.Error())
+			log.Error("exec command [%v] error [%v]", REDIS_CMD_LPUSH, err.Error())
 		}
 
 		return
@@ -169,50 +204,58 @@ func (this *RedisMQ) publishDirect(strRoutingKey, strData string) (err error) {
 	return
 }
 
-func (this *RedisMQ) consumeDirect(strBindingKey, strQueueName string, cb mq.FnConsumeCb) (err error) {
+func (this *RedisMQ) consumeDirect(strBindingKey, strQueueName string, handler mq.ReactHandler) (err error) {
 
 	var strData string
 
 RETRY_CONSUME:
 	c := this.pool.Get()
 	for {
-
-		var datas [][]byte
-		if datas, err = redis.ByteSlices(c.Do(REDIS_CMD_BRPOP, strBindingKey, 0)); err != nil {
-
-			this.closed = this.checkDisconnectedByError(err)
-
-			if this.debug {
-				//log.Error("Exec command [%v] error [%v]", REDIS_CMD_BRPOP, err.Error())
+		select {
+		case <-this.closing:
+			{
+				log.Debugf("MQ is closing...")
+				return
 			}
+		default:
+			{
+				var datas [][]byte
+				if datas, err = redis.ByteSlices(c.Do(REDIS_CMD_BRPOP, strBindingKey, 0)); err != nil {
 
-			if this.closed {
-				c.Close()
-				time.Sleep(1*time.Second)
-				goto RETRY_CONSUME
+					this.closed = this.checkDisconnectedByError(err)
+					if this.closed {
+						_ = c.Close()
+						time.Sleep(1 * time.Second)
+						goto RETRY_CONSUME
+					}
+				}
+
+				if len(datas) > 0 {
+					strData = string(datas[len(datas)-1])
+					handler.OnConsume(mq.Adapter_RedisMQ, strBindingKey, strQueueName, mq.DEFAULT_DATA_KEY, strData)
+				}
+
+				if this.debug {
+					log.Info("[CONSUMER] mode [%v] key [%v] data [%v]", this.mode.String(), strBindingKey, strData)
+				}
 			}
 		}
 
-		if len(datas) > 0 {
-			strData = string(datas[len(datas)-1])
-			cb(strData)
-		}
-
-		if this.debug {
-			log.Info("[CONSUMER] mode [%v] key [%v] data [%v]", this.mode.String(), strBindingKey, strData)
-		}
 	}
 
 	return
 }
 
-func (this *RedisMQ) publishTopic(strRoutingKey, strData string) (err error) {
+func (this *RedisMQ) publishTopic(strBindingKey, key string, value string) (err error) {
+
+	strData := string(value)
+
 	if this.debug {
-		log.Info("[PRODUCER] mode [%v] key [%v] data [%v]", this.mode.String(), strRoutingKey, strData)
+		log.Info("[PRODUCER] mode [%v] key [%v] data [%v]", this.mode.String(), strBindingKey, strData)
 	}
 	c := this.pool.Get()
 	defer c.Close()
-	if _, err = redis.Int(c.Do(REDIS_CMD_PUBLISH, strRoutingKey, strData)); err != nil {
+	if _, err = redis.Int(c.Do(REDIS_CMD_PUBLISH, strBindingKey, strData)); err != nil {
 		if this.debug {
 			log.Error("Exec command [%v] error [%v]", REDIS_CMD_PUBLISH, err.Error())
 		}
@@ -222,7 +265,7 @@ func (this *RedisMQ) publishTopic(strRoutingKey, strData string) (err error) {
 	return
 }
 
-func (this *RedisMQ) consumeTopic(strBindingKey, strQueueName string, cb mq.FnConsumeCb) (err error) {
+func (this *RedisMQ) consumeTopic(strBindingKey, strQueueName string, handler mq.ReactHandler) (err error) {
 
 	strBindingKey = strings.Replace(strBindingKey, "#", "*", -1) //将#符号替换成*(redis不支持#符号匹配模式)
 	var strData string
@@ -230,30 +273,36 @@ func (this *RedisMQ) consumeTopic(strBindingKey, strQueueName string, cb mq.FnCo
 RETRY_CONSUME:
 	c := this.pool.Get()
 	for {
+		select {
+		case <-this.closing:
+			{
+				log.Debugf("MQ is closing...")
+				return
+			}
+		default:
+			{
+				var datas []string
+				if datas, err = redis.Strings(c.Do(REDIS_CMD_PSUBSCRIBE, strBindingKey)); err != nil {
 
-		var datas []string
-		if datas, err = redis.Strings(c.Do(REDIS_CMD_PSUBSCRIBE, strBindingKey)); err != nil {
-
-			this.closed = this.checkDisconnectedByError(err)
-			if this.debug {
-				//log.Error("Exec command [%v] error [%v]", REDIS_CMD_PSUBSCRIBE, err.Error())
-			}
-			if this.closed {
-				c.Close()
-				time.Sleep(3*time.Second)
-				goto RETRY_CONSUME
-			}
-			time.Sleep(50*time.Millisecond)
-		} else {
-			if this.debug {
-				log.Debug("reply %+v", datas)
-			}
-			if len(datas) > 0 {
-				strData  = string(datas[len(datas)-1])
-				if this.debug {
-					log.Info("[CONSUMER] mode [%v] key [%v] data [%v]", this.mode.String(), strBindingKey, strData)
+					this.closed = this.checkDisconnectedByError(err)
+					if this.closed {
+						c.Close()
+						time.Sleep(3 * time.Second)
+						goto RETRY_CONSUME
+					}
+					time.Sleep(50 * time.Millisecond)
+				} else {
+					if this.debug {
+						log.Debug("reply %+v", datas)
+					}
+					if len(datas) > 0 {
+						strData = string(datas[len(datas)-1])
+						if this.debug {
+							log.Info("[CONSUMER] mode [%v] key [%v] data [%v]", this.mode.String(), strBindingKey, strData)
+						}
+						handler.OnConsume(mq.Adapter_RedisMQ, strBindingKey, strQueueName, mq.DEFAULT_DATA_KEY, strData)
+					}
 				}
-				cb(strData)
 			}
 		}
 	}
@@ -261,13 +310,14 @@ RETRY_CONSUME:
 	return
 }
 
-func (this *RedisMQ) publishFanout(strRoutingKey, strData string) (err error) {
+func (this *RedisMQ) publishFanout(strBindingKey, key string, value string) (err error) {
+
 	if this.debug {
-		log.Info("[PRODUCER] mode [%v] key [%v] data [%v]", this.mode.String(), strRoutingKey, strData)
+		log.Info("[PRODUCER] mode [%v] key [%v] data [%v]", this.mode.String(), strBindingKey, value)
 	}
 	c := this.pool.Get()
 	defer c.Close()
-	if _, err = redis.Int(c.Do(REDIS_CMD_PUBLISH, strRoutingKey, strData)); err != nil {
+	if _, err = redis.Int(c.Do(REDIS_CMD_PUBLISH, strBindingKey, value)); err != nil {
 		if this.debug {
 			log.Error("Exec command [%v] error [%v]", REDIS_CMD_PUBLISH, err.Error())
 		}
@@ -277,37 +327,43 @@ func (this *RedisMQ) publishFanout(strRoutingKey, strData string) (err error) {
 	return
 }
 
-func (this *RedisMQ) consumeFanout(strBindingKey, strQueueName string, cb mq.FnConsumeCb) (err error) {
+func (this *RedisMQ) consumeFanout(strBindingKey, strQueueName string, handler mq.ReactHandler) (err error) {
 
 	var strData string
 RETRY_CONSUME:
 	c := this.pool.Get()
 	for {
-
-		var datas []string
-		if datas, err = redis.Strings(c.Do(REDIS_CMD_SUBSCRIBE, strBindingKey)); err != nil {
-
-			this.closed = this.checkDisconnectedByError(err)
-			if this.debug {
-				//log.Error("Exec command [%v] error [%v]", REDIS_CMD_SUBSCRIBE, err.Error())
+		select {
+		case <-this.closing:
+			{
+				log.Debugf("MQ is closing...")
+				return
 			}
-			if this.closed {
-				c.Close()
-				time.Sleep(3*time.Second)
-				goto RETRY_CONSUME
-			}
-			time.Sleep(50*time.Millisecond)
-		} else {
+		default:
+			{
+				var datas []string
+				if datas, err = redis.Strings(c.Do(REDIS_CMD_SUBSCRIBE, strBindingKey)); err != nil {
 
-			if this.debug {
-				log.Debug("reply %+v", datas)
-			}
-			if len(datas) > 0 {
-				strData  = string(datas[len(datas)-1])
-				if this.debug {
-					log.Info("[CONSUMER] mode [%v] key [%v] data [%v]", this.mode.String(), strBindingKey, strData)
+					this.closed = this.checkDisconnectedByError(err)
+					if this.closed {
+						c.Close()
+						time.Sleep(3 * time.Second)
+						goto RETRY_CONSUME
+					}
+					time.Sleep(50 * time.Millisecond)
+				} else {
+
+					if this.debug {
+						log.Debug("reply %+v", datas)
+					}
+					if len(datas) > 0 {
+						strData = string(datas[len(datas)-1])
+						if this.debug {
+							log.Info("[CONSUMER] mode [%v] key [%v] data [%v]", this.mode.String(), strBindingKey, strData)
+						}
+						handler.OnConsume(mq.Adapter_RedisMQ, strBindingKey, strQueueName, mq.DEFAULT_DATA_KEY, strData)
+					}
 				}
-				cb(strData)
 			}
 		}
 	}
@@ -350,16 +406,19 @@ func (this *RedisMQ) newPool() *redis.Pool {
 func (this *RedisMQ) getQueueName(strKeyName string) (name string) {
 
 	switch this.mode {
-	case mq.Mode_Direct: name = fmt.Sprintf("%v.%v", mq.EXCHANGE_NAME_DIRECT, strKeyName)
-	case mq.Mode_Topic:  name = fmt.Sprintf("%v.%v", mq.EXCHANGE_NAME_TOPIC, strKeyName)
-	case mq.Mode_Fanout: name = fmt.Sprintf("%v.%v", mq.EXCHANGE_NAME_FANOUT, strKeyName)
+	case mq.Mode_Direct:
+		name = fmt.Sprintf("%v.%v", mq.EXCHANGE_NAME_DIRECT, strKeyName)
+	case mq.Mode_Topic:
+		name = fmt.Sprintf("%v.%v", mq.EXCHANGE_NAME_TOPIC, strKeyName)
+	case mq.Mode_Fanout:
+		name = fmt.Sprintf("%v.%v", mq.EXCHANGE_NAME_FANOUT, strKeyName)
 	}
 	return
 }
 
-func (this *RedisMQ) checkDisconnectedByError(err error) (bool) {
+func (this *RedisMQ) checkDisconnectedByError(err error) bool {
 
-	if strings.Contains(err.Error(), "EOF") || strings.Contains(err.Error(), "connection"){//标记服务器断开连接
+	if strings.Contains(err.Error(), "EOF") || strings.Contains(err.Error(), "connection") { //标记服务器断开连接
 		if this.debug {
 			log.Error("MQ server is disconnected...")
 		}
@@ -367,4 +426,13 @@ func (this *RedisMQ) checkDisconnectedByError(err error) (bool) {
 	}
 
 	return false
+}
+
+/*
+* @brief 	获取当前MQ类型
+* @param 	adapter  MQ类型
+ */
+func (this *RedisMQ) GetAdapter() (adapter mq.Adapter) {
+
+	return mq.Adapter_RedisMQ
 }

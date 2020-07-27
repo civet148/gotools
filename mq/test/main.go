@@ -12,6 +12,9 @@ import (
 	"time"
 )
 
+type MyConsumer struct {
+}
+
 func main() {
 
 	var err error
@@ -19,53 +22,59 @@ func main() {
 
 	log.Info("Program is running on...")
 
+	mq.SetLogLevel("debug") //set debug mode
+
 	var mode mq.Adapter
-	mode = mq.Adapter_ETCD //mq.Adapter_RabbitMQ  mq.Adapter_RedisMQ
+	mode = mq.Adapter_KafkaMQ //mq.Adapter_ETCD/mq.Adapter_RabbitMQ/mq.Adapter_RedisMQ/mq.Adapter_KafkaMQ/mq.Adapter_MQTT
 
 	switch mode {
 	case mq.Adapter_RabbitMQ:
 		{
 			// RabbitMQ无认证信息 amqp://192.168.1.15:5672
 			// RabbitMQ带认证信息 amqp://test:123456@192.168.1.15:5672
-			strConnUrl = "amqp://192.168.1.15:5672"
+			strConnUrl = "amqp://127.0.0.1:5672"
 		}
 	case mq.Adapter_RedisMQ:
 		{
 			// Redis无认证信息 redis://192.168.1.15:6379
 			// Redis带认证信息 redis://123456@192.168.1.15:6379
-			strConnUrl = "redis://192.168.1.15:6379"
+			strConnUrl = "redis://127.0.0.1:6379"
 		}
 	case mq.Adapter_MQTT:
 		{
 			// 格式规范 mqtt://username:password@host:port[/config?tls=[true|false]&&ca=ca.crt&key=client.key&cer=client.crt&client-id=MyClientID]
 			// SSL加密连接URL范例: "mqtt://192.168.1.15:8883/config?tls=true&ca=ca.crt&key=client.key&cer=client.crt&client-id=MyNameIsLory"
 			// 非加密连接URL规范
-			strConnUrl = "mqtt://192.168.1.15:1883/config?client-id="
+			strConnUrl = "mqtt://127.0.0.1:1883/config?client-id="
 		}
 	case mq.Adapter_ETCD:
 		{
-			strConnUrl = "etcd://192.168.124.110:2379"
+			strConnUrl = "etcd://127.0.0.1:2379"
 		}
 	case mq.Adapter_KafkaMQ:
 		{
-
+			strConnUrl = "kafka://127.0.0.1:9092"
 		}
 	}
 
 	/*
 	 警告：MQTT协议下direct、topic、fanout模式最终行为一致，无需创建不同对象
 	*/
-	if err = TestDirect(mode, strConnUrl); err != nil {
-		log.Error("%v", err.Error())
-	}
+	//if err = TestDirect(mode, strConnUrl); err != nil {
+	//	log.Error("%v", err.Error())
+	//}
 	if err = TestTopic(mode, strConnUrl); err != nil {
 		log.Error("%v", err.Error())
 	}
-	if err = TestFanout(mode, strConnUrl); err != nil {
-		log.Error("%v", err.Error())
-	}
+	//if err = TestFanout(mode, strConnUrl); err != nil {
+	//	log.Error("%v", err.Error())
+	//}
 
 	time.Sleep(1000 * time.Hour)
+}
+
+func (c *MyConsumer) OnConsume(adapter mq.Adapter, strBindingKey, strQueueName, strKey, strValue string) {
+	log.Infof("[%+v] binding key [%v] queue name [%v] message key [%+v] value [%+v]", adapter, strBindingKey, strQueueName, strKey, strValue)
 }
 
 func TestDirect(mode mq.Adapter, strUrl string) (err error) {
@@ -79,19 +88,18 @@ func TestDirect(mode mq.Adapter, strUrl string) (err error) {
 	}
 	log.Info("[DIRECT] Connect to [%v] MQ [%v] broker ok...", mode, strUrl)
 
-	var strDirectKey, strDirectQueue string
+	var strDirectKey, strQueueName string
+	strQueueName = "DIRECT/QUEUE"
 	if mode == mq.Adapter_MQTT {
 		//MQTT模式测试
 		strDirectKey = "DIRECT/ROUTINGKEY"
-		strDirectQueue = "DIRECT/QUEUE"
 	} else {
 		//其他MQ模式测试: 先使用消费者对象绑定队列，否则可能会导致生产者发布的消息被丢弃
 		strDirectKey = "DIRECT.ROUTINGKEY"
-		strDirectQueue = "DIRECT.QUEUE"
 	}
 
-	go ConsumeDirect(DirectMQ, strDirectKey, strDirectQueue)
-	go PublishDirect(DirectMQ, strDirectKey)
+	go ConsumeDirect(DirectMQ, strDirectKey, strQueueName)
+	go PublishDirect(DirectMQ, strDirectKey, strQueueName)
 
 	return
 }
@@ -108,22 +116,28 @@ func TestTopic(mode mq.Adapter, strUrl string) (err error) {
 
 	log.Info("[TOPIC] Connect to [%v] MQ [%v] broker ok...", mode, strUrl)
 
-	var strTopicBindingKey, strTopicRoutingKey, strTopicQueue string
+	var strTopicBindingKey, strTopicRoutingKey, strQueueName string
+
 	if mode == mq.Adapter_MQTT {
 		//MQTT模式测试
 		strTopicRoutingKey = "TOPIC/NEWS/ROUTINGKEY"
 		strTopicBindingKey = "TOPIC/NEWS/#" //#通配多级
-		strTopicQueue = "TOPIC/QUEUE"
+		strQueueName = "TOPIC/QUEUE"
+
+	} else if mode == mq.Adapter_KafkaMQ {
+		//kafka模式测试(kafka不支持通配)
+		strTopicRoutingKey = "TOPIC-NEWS-ROUTINGKEY" //topic
+		strTopicBindingKey = strTopicRoutingKey      //topic
+		strQueueName = "TOPIC.QUEUE"                 //group
 	} else {
 		//其他MQ模式测试
 		strTopicRoutingKey = "TOPIC.NEWS.ROUTINGKEY"
 		strTopicBindingKey = "TOPIC.NEWS.#" //#表示一个或多个单词（以.分割），*表示一个单词
-		strTopicQueue = "TOPIC.QUEUE"
-
+		strQueueName = "TOPIC.QUEUE"
 	}
 
-	go ConsumeTopic(TopicMQ, strTopicBindingKey, strTopicQueue)
-	go PublishTopic(TopicMQ, strTopicRoutingKey)
+	go ConsumeTopic(TopicMQ, strTopicBindingKey, strQueueName)
+	go PublishTopic(TopicMQ, strTopicRoutingKey, strQueueName)
 	return
 }
 
@@ -150,23 +164,24 @@ func TestFanout(mode mq.Adapter, strUrl string) (err error) {
 		strFanoutQueue = "FANOUT.QUEUE"
 	}
 	go ConsumeFanout(FanoutMQ, strFanoutBindingKey, strFanoutQueue)
-	go PublishFanout(FanoutMQ, strFanoutRoutingKey)
+	go PublishFanout(FanoutMQ, strFanoutRoutingKey, strFanoutQueue)
 
 	return
 }
 
-func PublishDirect(ReactMQ mq.IReactMQ, strRoutingKey string) (err error) {
+func PublishDirect(ReactMQ mq.IReactMQ, strBindingKey, strQueueName string) (err error) {
 	var nMsgIndex int
-
+	var strData string = "This is direct data"
 	time.Sleep(5 * time.Second)
 
+	var strKey = mq.DEFAULT_DATA_KEY
+
 	prod := ReactMQ
-	var strData string = "This is direct data"
 
 	for {
 
 		strMsg := fmt.Sprintf("%v[%v]", strData, nMsgIndex)
-		if err = prod.Publish(strRoutingKey, strMsg); err != nil {
+		if err = prod.Publish(strBindingKey, strQueueName, strKey, strMsg); err != nil {
 			log.Error("Publish [direct] data to broker error(%v)", err.Error())
 
 			goto CONTINUE
@@ -190,23 +205,19 @@ func PublishDirect(ReactMQ mq.IReactMQ, strRoutingKey string) (err error) {
 func ConsumeDirect(ReactMQ mq.IReactMQ, strBindingKey, strQueueName string) {
 
 	c1 := ReactMQ
-	errConsume := c1.Consume(strBindingKey, strQueueName, ConsumeCallbackDIRECT)
+	errConsume := c1.Consume(strBindingKey, strQueueName, &MyConsumer{})
 	if errConsume != nil {
 		log.Error("%v", errConsume.Error())
 		return
 	}
 }
 
-//消费者收到MQ缓存要处理的数据回调通知
-func ConsumeCallbackDIRECT(strBody string) {
-
-	log.Info("CALLBACK [direct] got data [%v]", strBody)
-}
-
-func PublishTopic(ReactMQ mq.IReactMQ, strRoutingKey string) (err error) {
+func PublishTopic(ReactMQ mq.IReactMQ, strBindingKey, strQueueName string) (err error) {
 
 	var bConnDown bool //MQ服务器异常
 	var nMsgIndex int
+
+	var strKey = mq.DEFAULT_DATA_KEY
 
 	prod := ReactMQ
 	for {
@@ -216,7 +227,7 @@ func PublishTopic(ReactMQ mq.IReactMQ, strRoutingKey string) (err error) {
 		}
 		var strData string = "This is topic data"
 		strMsg := fmt.Sprintf("%v[%v]", strData, nMsgIndex)
-		if err = prod.Publish(strRoutingKey, strMsg); err != nil {
+		if err = prod.Publish(strBindingKey, strQueueName, strKey, strMsg); err != nil {
 			log.Error("%v", err.Error())
 			bConnDown = true
 			goto CONTINUE
@@ -232,32 +243,33 @@ func PublishTopic(ReactMQ mq.IReactMQ, strRoutingKey string) (err error) {
 				log.Info("Reconnect to MQ server ok")
 			}
 		}
-		time.Sleep(7 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 
 func ConsumeTopic(ReactMQ mq.IReactMQ, strBindingKey, strQueueName string) {
 	c1 := ReactMQ
-	errConsume := c1.Consume(strBindingKey, strQueueName, ConsumeCallbackTOPIC)
+	errConsume := c1.Consume(strBindingKey, strQueueName, &MyConsumer{})
 	if errConsume != nil {
 		log.Error("%v", errConsume.Error())
 		return
 	}
 }
 
-//消费者收到MQ缓存要处理的数据回调通知
-func ConsumeCallbackTOPIC(strBody string) {
-
-	log.Info("CALLBACK [topic] got data [%v]", strBody)
-}
-
-func PublishFanout(ReactMQ mq.IReactMQ, strRoutingKey string) (err error) {
+func PublishFanout(ReactMQ mq.IReactMQ, strBindingKey, strQueueName string) (err error) {
 	var nMsgIndex int
-	prod := ReactMQ
 	var strData string = "This is fanout data"
+
+	prod := ReactMQ
+
+	var strKey = mq.DEFAULT_DATA_KEY
+	if ReactMQ.GetAdapter() == mq.Adapter_KafkaMQ {
+		strKey = "kafka-data-key"
+	}
+
 	for {
 		strMsg := fmt.Sprintf("%v[%v]", strData, nMsgIndex)
-		if err = prod.Publish(strRoutingKey, strMsg); err != nil {
+		if err = prod.Publish(strBindingKey, strQueueName, strKey, strMsg); err != nil {
 			log.Error("%v", err.Error())
 			goto CONTINUE
 		}
@@ -283,16 +295,10 @@ func ConsumeFanout(ReactMQ mq.IReactMQ, strBindingKey, strQueueName string) {
 
 	go func() {
 		//fanout模式消费队列1
-		errConsume := c1.Consume(strBindingKey, strQueueName, ConsumeCallbackFANOUT)
+		errConsume := c1.Consume(strBindingKey, strQueueName, &MyConsumer{})
 		if errConsume != nil {
 			log.Error("%v", errConsume.Error())
 			return
 		}
 	}()
-}
-
-//消费者收到MQ缓存要处理的数据回调通知
-func ConsumeCallbackFANOUT(strBody string) {
-
-	log.Info("CALLBACK [fanout] got data [%v]", strBody)
 }
