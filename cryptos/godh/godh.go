@@ -3,6 +3,7 @@ package godh
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"golang.org/x/crypto/curve25519"
 	"io"
 )
@@ -49,16 +50,22 @@ func NewCryptoDH(pri ...[32]byte) (dh *CryptoDH) {
 }
 
 //pub 对方的公钥(32字节byte数组)
-//key=自己的私钥+对方公钥经DH算法计算出来的加密KEY
+//返回key：自己的私钥+对方公钥经DH算法计算出来的加密KEY
 func (dh *CryptoDH) ScalarMult(pub [32]byte) [32]byte {
 	curve25519.ScalarMult(&dh.ShareKey, &dh.PrivateKey, &pub)
 	dh.ShareKeyBase64 = base64.StdEncoding.EncodeToString(dh.ShareKey[:])
 	return dh.ShareKey
 }
 
-//pub 对方的公钥(32字节byte数组)
-//key=自己的私钥+对方公钥经DH算法计算出来的加密KEY(base64编码)
-func (dh *CryptoDH) ScalarMultBase64(pub [32]byte) string {
+//base 对方的公钥(base64编码)
+//返回key：自己的私钥+对方公钥经DH算法计算出来的加密KEY(base64编码)
+func (dh *CryptoDH) ScalarMultBase64(base string) string {
+	var pub [32]byte
+	s, err := base64.StdEncoding.DecodeString(base)
+	if err != nil {
+		panic(fmt.Sprintf("parameter base64 [%v] illegal", base))
+	}
+	copy(pub[:], s)
 	_ = dh.ScalarMult(pub)
 	return dh.ShareKeyBase64
 }
