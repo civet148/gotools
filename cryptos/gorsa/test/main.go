@@ -3,7 +3,7 @@ package main
 import (
 	"crypto/rsa"
 	"fmt"
-	"github.com/civet148/gotools/gorsa"
+	"github.com/civet148/gotools/cryptos/gorsa"
 )
 
 func init() {
