@@ -19,12 +19,12 @@ const (
 )
 
 type CryptoDH struct {
-	Key              [CRYPTO_DH_KEY_LENGTH]byte
-	PrivateKey       [CRYPTO_DH_KEY_LENGTH]byte
-	PublicKey        [CRYPTO_DH_KEY_LENGTH]byte
-	KeyBase64        string
-	PublicKeyBase64  string
-	PrivateKeyBase64 string
+	ShareKey         [CRYPTO_DH_KEY_LENGTH]byte //共享密钥(用于双方加密/解密)
+	PrivateKey       [CRYPTO_DH_KEY_LENGTH]byte //私钥
+	PublicKey        [CRYPTO_DH_KEY_LENGTH]byte //公钥
+	ShareKeyBase64   string                     //共享密钥BASE64字符串
+	PublicKeyBase64  string                     //公钥BASE64字符串
+	PrivateKeyBase64 string                     //私钥BASE64字符串
 }
 
 func init() {
@@ -51,16 +51,16 @@ func NewCryptoDH(pri ...[32]byte) (dh *CryptoDH) {
 //pub 对方的公钥(32字节byte数组)
 //key=自己的私钥+对方公钥经DH算法计算出来的加密KEY
 func (dh *CryptoDH) ScalarMult(pub [32]byte) [32]byte {
-	curve25519.ScalarMult(&dh.Key, &dh.PrivateKey, &pub)
-	dh.KeyBase64 = base64.StdEncoding.EncodeToString(dh.Key[:])
-	return dh.Key
+	curve25519.ScalarMult(&dh.ShareKey, &dh.PrivateKey, &pub)
+	dh.ShareKeyBase64 = base64.StdEncoding.EncodeToString(dh.ShareKey[:])
+	return dh.ShareKey
 }
 
 //pub 对方的公钥(32字节byte数组)
 //key=自己的私钥+对方公钥经DH算法计算出来的加密KEY(base64编码)
 func (dh *CryptoDH) ScalarMultBase64(pub [32]byte) string {
 	_ = dh.ScalarMult(pub)
-	return dh.KeyBase64
+	return dh.ShareKeyBase64
 }
 
 func (dh *CryptoDH) GetPrivateKey() [32]byte {
@@ -79,10 +79,10 @@ func (dh *CryptoDH) GetPublicKeyBase64() string {
 	return dh.PublicKeyBase64
 }
 
-func (dh *CryptoDH) GetKey() [32]byte {
-	return dh.Key
+func (dh *CryptoDH) GetShareKey() [32]byte {
+	return dh.ShareKey
 }
 
-func (dh *CryptoDH) GetKeyBase64() string {
-	return dh.KeyBase64
+func (dh *CryptoDH) GetShareKeyBase64() string {
+	return dh.ShareKeyBase64
 }
