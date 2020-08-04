@@ -7,7 +7,7 @@ type CryptoAES_CFB struct {
 }
 
 func init() {
-	goaes.Register(goaes.AES_Type_CFB, NewCryptoAES_CFB)
+	goaes.Register(goaes.AES_Mode_CFB, NewCryptoAES_CFB)
 }
 
 //key 长度必须为16/24/32字节(128/192/256 bits)
@@ -45,4 +45,9 @@ func (c *CryptoAES_CFB) Decrypt(in []byte) (out []byte, err error) {
 func (c *CryptoAES_CFB) DecryptBase64(in string) (out []byte, err error) {
 
 	return
+}
+
+//获取当前AES模式
+func (c *CryptoAES_CFB) GetMode() goaes.AES_Mode {
+	return goaes.AES_Mode_CFB
 }

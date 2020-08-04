@@ -28,7 +28,7 @@ func main() {
 
 func AES_CBC() {
 
-	aes := NewCryptoAES(AES_Type_CBC, []byte(strKey32), []byte(strIV))
+	aes := NewCryptoAES(AES_Mode_CBC, []byte(strKey32), []byte(strIV))
 	enc, _ := aes.EncryptBase64([]byte(strText))
 	log.Infof("AES CBC text [%v] encrypt -> [%v]", strText, enc)
 	dec, _ := aes.DecryptBase64(enc)
@@ -36,7 +36,7 @@ func AES_CBC() {
 }
 
 func AES_CFB() {
-	aes := NewCryptoAES(AES_Type_CFB, []byte(strKey32), []byte(strIV))
+	aes := NewCryptoAES(AES_Mode_CFB, []byte(strKey32), []byte(strIV))
 	enc, _ := aes.EncryptBase64([]byte(strText))
 	log.Infof("AES CFB text [%v] encrypt -> [%v]", strText, enc)
 	dec, _ := aes.DecryptBase64(enc)
@@ -44,7 +44,7 @@ func AES_CFB() {
 }
 
 func AES_ECB() {
-	aes := NewCryptoAES(AES_Type_ECB, []byte(strKey32), []byte(strIV))
+	aes := NewCryptoAES(AES_Mode_ECB, []byte(strKey32), []byte(strIV))
 	enc, _ := aes.EncryptBase64([]byte(strText))
 	log.Infof("AES ECB text [%v] encrypt -> [%v]", strText, enc)
 	dec, _ := aes.DecryptBase64(enc)
@@ -53,7 +53,7 @@ func AES_ECB() {
 
 func AES_OFB() {
 
-	aes := NewCryptoAES(AES_Type_OFB, []byte(strKey32), []byte(strIV))
+	aes := NewCryptoAES(AES_Mode_OFB, []byte(strKey32), []byte(strIV))
 	enc, _ := aes.EncryptBase64([]byte(strText))
 	log.Infof("AES OFB text [%v] encrypt -> [%v]", strText, enc)
 	dec, _ := aes.DecryptBase64(enc)
@@ -62,7 +62,7 @@ func AES_OFB() {
 
 func AES_CTR128() {
 
-	aes := NewCryptoAES(AES_Type_CTR128, []byte(strKey16), []byte(strIV))
+	aes := NewCryptoAES(AES_Mode_CTR128, []byte(strKey16), []byte(strIV))
 	enc, _ := aes.EncryptBase64([]byte(strText))
 	log.Infof("AES CTR text [%v] encrypt -> [%v]", strText, enc)
 	dec, _ := aes.DecryptBase64(enc)
@@ -70,7 +70,7 @@ func AES_CTR128() {
 }
 
 func AES_IGE256() {
-	aes := NewCryptoAES(AES_Type_IGE256, []byte(strKey32), []byte(strIV))
+	aes := NewCryptoAES(AES_Mode_IGE256, []byte(strKey32), []byte(strIV))
 	enc, _ := aes.EncryptBase64([]byte(strText))
 	log.Infof("AES IGE text [%v] encrypt -> [%v]", strText, enc)
 	dec, _ := aes.DecryptBase64(enc)
