@@ -4,7 +4,7 @@ import (
 	. "github.com/civet148/gotools/cryptos/goaes"
 	_ "github.com/civet148/gotools/cryptos/goaes/cbc" //注册CBC加解密对象创建方法
 	_ "github.com/civet148/gotools/cryptos/goaes/cfb" //注册CFB加解密对象创建方法
-	_ "github.com/civet148/gotools/cryptos/goaes/ctr" //注册CTR128加解密对象创建方法
+	_ "github.com/civet148/gotools/cryptos/goaes/ctr" //注册CTR加解密对象创建方法
 	_ "github.com/civet148/gotools/cryptos/goaes/ecb" //注册ECB加解密对象创建方法
 	_ "github.com/civet148/gotools/cryptos/goaes/ofb" //注册OFB加解密对象创建方法
 	"github.com/civet148/gotools/log"
