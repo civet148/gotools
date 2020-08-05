@@ -7,28 +7,28 @@ import (
 	"github.com/civet148/gotools/cryptos/goaes"
 )
 
-type CryptoAES_CTR128 struct {
+type CryptoAES_CTR struct {
 	key, iv []byte
 }
 
 func init() {
-	goaes.Register(goaes.AES_Mode_CTR, NewCryptoAES_CTR128)
+	goaes.Register(goaes.AES_Mode_CTR, NewCryptoAES_CTR)
 }
 
 //key 长度必须为16/24/32字节(128/192/256 bits)
 //iv 向量长度固定16字节
-func NewCryptoAES_CTR128(key, iv []byte) goaes.CryptoAES {
+func NewCryptoAES_CTR(key, iv []byte) goaes.CryptoAES {
 
 	goaes.AssertKey(key)
 	goaes.AssertIV(iv)
-	return &CryptoAES_CTR128{
+	return &CryptoAES_CTR{
 		key: key,
 		iv:  iv,
 	}
 }
 
 //加密后返回二进制字节数据切片
-func (c *CryptoAES_CTR128) Encrypt(in []byte) (out []byte, err error) {
+func (c *CryptoAES_CTR) Encrypt(in []byte) (out []byte, err error) {
 	var block cipher.Block
 	if block, err = aes.NewCipher(c.key); err != nil {
 		return
@@ -44,7 +44,7 @@ func (c *CryptoAES_CTR128) Encrypt(in []byte) (out []byte, err error) {
 }
 
 //加密后将密文做BASE64编码字符串
-func (c *CryptoAES_CTR128) EncryptBase64(in []byte) (out string, err error) {
+func (c *CryptoAES_CTR) EncryptBase64(in []byte) (out string, err error) {
 	var enc []byte
 	if enc, err = c.Encrypt(in); err != nil {
 		return
@@ -54,7 +54,7 @@ func (c *CryptoAES_CTR128) EncryptBase64(in []byte) (out string, err error) {
 }
 
 //解密后返回二进制字节数据切片
-func (c *CryptoAES_CTR128) Decrypt(in []byte) (out []byte, err error) {
+func (c *CryptoAES_CTR) Decrypt(in []byte) (out []byte, err error) {
 	var block cipher.Block
 	if block, err = aes.NewCipher(c.key); err != nil {
 		return
@@ -67,7 +67,7 @@ func (c *CryptoAES_CTR128) Decrypt(in []byte) (out []byte, err error) {
 }
 
 //解密BASE64编码字符串的密文后返回二进制切片
-func (c *CryptoAES_CTR128) DecryptBase64(in string) (out []byte, err error) {
+func (c *CryptoAES_CTR) DecryptBase64(in string) (out []byte, err error) {
 	var data []byte
 	if data, err = base64.StdEncoding.DecodeString(in); err != nil {
 		return
@@ -76,6 +76,6 @@ func (c *CryptoAES_CTR128) DecryptBase64(in string) (out []byte, err error) {
 }
 
 //获取当前AES模式
-func (c *CryptoAES_CTR128) GetMode() goaes.AES_Mode {
+func (c *CryptoAES_CTR) GetMode() goaes.AES_Mode {
 	return goaes.AES_Mode_CTR
 }
