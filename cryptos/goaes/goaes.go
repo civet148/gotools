@@ -8,12 +8,11 @@ import (
 type AES_Mode int
 
 const (
-	AES_Mode_CBC    AES_Mode = 1 //CBC模式(密钥长度16/24/32字节)
-	AES_Mode_CFB    AES_Mode = 2 //CFB模式(密钥长度16/24/32字节)
-	AES_Mode_ECB    AES_Mode = 3 //ECB模式(密钥长度16/24/32字节)
-	AES_Mode_OFB    AES_Mode = 4 //OFB模式(密钥长度16/24/32字节)
-	AES_Mode_CTR128 AES_Mode = 5 //CTR模式(密钥长度16/24/32字节)
-	AES_Mode_IGE256 AES_Mode = 6 //IGE模式(密钥长度16/24/32字节)
+	AES_Mode_CBC AES_Mode = 1 //CBC模式(密钥长度16/24/32字节)
+	AES_Mode_CFB AES_Mode = 2 //CFB模式(密钥长度16/24/32字节)
+	AES_Mode_ECB AES_Mode = 3 //ECB模式(密钥长度16/24/32字节)
+	AES_Mode_OFB AES_Mode = 4 //OFB模式(密钥长度16/24/32字节)
+	AES_Mode_CTR AES_Mode = 5 //CTR模式(密钥长度16/24/32字节)
 )
 
 func (t AES_Mode) String() string {
@@ -26,10 +25,8 @@ func (t AES_Mode) String() string {
 		return "AES_Mode_ECB"
 	case AES_Mode_OFB:
 		return "AES_Mode_OFB"
-	case AES_Mode_CTR128:
-		return "AES_Mode_CTR128"
-	case AES_Mode_IGE256:
-		return "AES_Mode_IGE256"
+	case AES_Mode_CTR:
+		return "AES_Mode_CTR"
 	}
 	return "AES_Mode_Unknown"
 }
@@ -61,7 +58,7 @@ func Register(aesType AES_Mode, inst instance) {
 
 //aesType AES加密模式
 //key 长度必须为16/24/32字节(128/192/256 bits)
-//iv  向量长度固定16字节(CBC模式可传nil)
+//iv  向量长度固定16字节(ECB模式可传nil)
 func NewCryptoAES(aesType AES_Mode, key, iv []byte) CryptoAES {
 
 	fn, ok := mapInstances[aesType]
@@ -72,20 +69,21 @@ func NewCryptoAES(aesType AES_Mode, key, iv []byte) CryptoAES {
 	return fn(key, iv)
 }
 
-//补码
+//补码(AES算法PKCS#7和PKCS#5一致)
 func PKCS7Padding(cipherText []byte, blockSize int) []byte {
 	padding := blockSize - len(cipherText)%blockSize
 	paddingText := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(cipherText, paddingText...)
 }
 
-//去码
+//去码(AES算法PKCS#7和PKCS#5一致)
 func PKCS7UnPadding(cihperData []byte) []byte {
 	length := len(cihperData)
 	unpadding := int(cihperData[length-1])
 	return cihperData[:(length - unpadding)]
 }
 
+//判断AES密钥长度是否合法
 func AssertKey(key []byte) {
 	keyLen := len(key)
 	if keyLen != 16 && keyLen != 24 && keyLen != 32 {
@@ -93,6 +91,7 @@ func AssertKey(key []byte) {
 	}
 }
 
+//判断AES向量长度是否合法
 func AssertIV(iv []byte) {
 	keyLen := len(iv)
 	if keyLen < 16 {

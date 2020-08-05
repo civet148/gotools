@@ -1,8 +1,9 @@
-package ctr128
+package ctr
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"encoding/base64"
 	"github.com/civet148/gotools/cryptos/goaes"
 )
 
@@ -11,7 +12,7 @@ type CryptoAES_CTR128 struct {
 }
 
 func init() {
-	goaes.Register(goaes.AES_Mode_CTR128, NewCryptoAES_CTR128)
+	goaes.Register(goaes.AES_Mode_CTR, NewCryptoAES_CTR128)
 }
 
 //key 长度必须为16/24/32字节(128/192/256 bits)
@@ -32,30 +33,49 @@ func (c *CryptoAES_CTR128) Encrypt(in []byte) (out []byte, err error) {
 	if block, err = aes.NewCipher(c.key); err != nil {
 		return
 	}
+	var data = make([]byte, len(in))
+	copy(data, in)
 	blockSize := block.BlockSize()
-	goaes.PKCS7Padding(in, blockSize)
+	data = goaes.PKCS7Padding(data, blockSize)
+	blockMode := cipher.NewCTR(block, c.iv)
+	out = make([]byte, len(data))
+	blockMode.XORKeyStream(out, data)
 	return
 }
 
 //加密后将密文做BASE64编码字符串
 func (c *CryptoAES_CTR128) EncryptBase64(in []byte) (out string, err error) {
-
+	var enc []byte
+	if enc, err = c.Encrypt(in); err != nil {
+		return
+	}
+	out = base64.StdEncoding.EncodeToString(enc)
 	return
 }
 
 //解密后返回二进制字节数据切片
 func (c *CryptoAES_CTR128) Decrypt(in []byte) (out []byte, err error) {
-
+	var block cipher.Block
+	if block, err = aes.NewCipher(c.key); err != nil {
+		return
+	}
+	blockMode := cipher.NewCTR(block, c.iv)
+	out = make([]byte, len(in))
+	blockMode.XORKeyStream(out, in)
+	out = goaes.PKCS7UnPadding(out)
 	return
 }
 
 //解密BASE64编码字符串的密文后返回二进制切片
 func (c *CryptoAES_CTR128) DecryptBase64(in string) (out []byte, err error) {
-
-	return
+	var data []byte
+	if data, err = base64.StdEncoding.DecodeString(in); err != nil {
+		return
+	}
+	return c.Decrypt(data)
 }
 
 //获取当前AES模式
 func (c *CryptoAES_CTR128) GetMode() goaes.AES_Mode {
-	return goaes.AES_Mode_CTR128
+	return goaes.AES_Mode_CTR
 }

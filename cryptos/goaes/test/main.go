@@ -2,12 +2,11 @@ package main
 
 import (
 	. "github.com/civet148/gotools/cryptos/goaes"
-	_ "github.com/civet148/gotools/cryptos/goaes/cbc"    //注册CBC加解密对象创建方法
-	_ "github.com/civet148/gotools/cryptos/goaes/cfb"    //注册CFB加解密对象创建方法
-	_ "github.com/civet148/gotools/cryptos/goaes/ctr128" //注册CTR128加解密对象创建方法
-	_ "github.com/civet148/gotools/cryptos/goaes/ecb"    //注册ECB加解密对象创建方法
-	_ "github.com/civet148/gotools/cryptos/goaes/ige256" //注册IGE256加解密对象创建方法
-	_ "github.com/civet148/gotools/cryptos/goaes/ofb"    //注册OFB加解密对象创建方法
+	_ "github.com/civet148/gotools/cryptos/goaes/cbc" //注册CBC加解密对象创建方法
+	_ "github.com/civet148/gotools/cryptos/goaes/cfb" //注册CFB加解密对象创建方法
+	_ "github.com/civet148/gotools/cryptos/goaes/ctr" //注册CTR128加解密对象创建方法
+	_ "github.com/civet148/gotools/cryptos/goaes/ecb" //注册ECB加解密对象创建方法
+	_ "github.com/civet148/gotools/cryptos/goaes/ofb" //注册OFB加解密对象创建方法
 	"github.com/civet148/gotools/log"
 )
 
@@ -18,61 +17,30 @@ var strIV = "1234567890123456"                              //加密向量(固�
 var strText = "wallet  RUNNING   pid 13027, uptime 0:00:15" //测试数据
 
 func main() {
-	AES_CBC()
-	//AES_CFB()
-	//AES_ECB()
-	//AES_OFB()
-	//AES_CTR128()
-	//AES_IGE256()
-}
 
-func AES_CBC() {
+	var modes = []AES_Mode{
+		AES_Mode_CBC,
+		AES_Mode_CFB,
+		AES_Mode_ECB,
+		AES_Mode_OFB,
+		AES_Mode_CTR,
+	}
 
-	aes := NewCryptoAES(AES_Mode_CBC, []byte(strKey32), []byte(strIV))
-	enc, _ := aes.EncryptBase64([]byte(strText))
-	log.Infof("AES CBC text [%v] encrypt -> [%v]", strText, enc)
-	dec, _ := aes.DecryptBase64(enc)
-	log.Infof("AES CBC base [%v] decrypt -> [%v]", enc, string(dec))
-}
+	for _, v := range modes {
 
-func AES_CFB() {
-	aes := NewCryptoAES(AES_Mode_CFB, []byte(strKey32), []byte(strIV))
-	enc, _ := aes.EncryptBase64([]byte(strText))
-	log.Infof("AES CFB text [%v] encrypt -> [%v]", strText, enc)
-	dec, _ := aes.DecryptBase64(enc)
-	log.Infof("AES CFB base [%v] decrypt -> [%v]", enc, string(dec))
-}
+		aes := NewCryptoAES(v, []byte(strKey32), []byte(strIV))
+		enc, err := aes.EncryptBase64([]byte(strText))
+		if err != nil {
+			log.Errorf("[%v] encrypt to base64 error [%v]", aes.GetMode(), err.Error())
+			continue
+		}
+		log.Infof("[%v] text [%v] encrypt -> [%v]", aes.GetMode(), strText, enc)
 
-func AES_ECB() {
-	aes := NewCryptoAES(AES_Mode_ECB, []byte(strKey32), []byte(strIV))
-	enc, _ := aes.EncryptBase64([]byte(strText))
-	log.Infof("AES ECB text [%v] encrypt -> [%v]", strText, enc)
-	dec, _ := aes.DecryptBase64(enc)
-	log.Infof("AES ECB base [%v] decrypt -> [%v]", enc, string(dec))
-}
-
-func AES_OFB() {
-
-	aes := NewCryptoAES(AES_Mode_OFB, []byte(strKey32), []byte(strIV))
-	enc, _ := aes.EncryptBase64([]byte(strText))
-	log.Infof("AES OFB text [%v] encrypt -> [%v]", strText, enc)
-	dec, _ := aes.DecryptBase64(enc)
-	log.Infof("AES OFB base [%v] decrypt -> [%v]", enc, string(dec))
-}
-
-func AES_CTR128() {
-
-	aes := NewCryptoAES(AES_Mode_CTR128, []byte(strKey16), []byte(strIV))
-	enc, _ := aes.EncryptBase64([]byte(strText))
-	log.Infof("AES CTR text [%v] encrypt -> [%v]", strText, enc)
-	dec, _ := aes.DecryptBase64(enc)
-	log.Infof("AES CTR base [%v] decrypt -> [%v]", enc, string(dec))
-}
-
-func AES_IGE256() {
-	aes := NewCryptoAES(AES_Mode_IGE256, []byte(strKey32), []byte(strIV))
-	enc, _ := aes.EncryptBase64([]byte(strText))
-	log.Infof("AES IGE text [%v] encrypt -> [%v]", strText, enc)
-	dec, _ := aes.DecryptBase64(enc)
-	log.Infof("AES IGE base [%v] decrypt -> [%v]", enc, string(dec))
+		dec, err := aes.DecryptBase64(enc)
+		if err != nil {
+			log.Errorf("[%v] decrypt from base64 error [%v]", aes.GetMode(), err.Error())
+			continue
+		}
+		log.Infof("[%v] base [%v] decrypt -> [%v]", aes.GetMode(), enc, string(dec))
+	}
 }
