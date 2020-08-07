@@ -35,8 +35,8 @@ func init() {
 func NewCryptoDH(pri ...[32]byte) (dh *CryptoDH) {
 	dh = &CryptoDH{}
 
-	if len(pri) == 0 { //随机生成密钥对
-		dh.makeCurve25519KeyPair()
+	if len(pri) == 0 { //随机生成私钥
+		dh.makeCurve25519PrivateKey()
 	} else {
 		dh.setPrivateKey(pri[0])
 	}
@@ -103,7 +103,7 @@ func (dh *CryptoDH) setPrivateKey(pri [32]byte) {
 	dh.privateKey = pri
 }
 
-func (dh *CryptoDH) makeCurve25519KeyPair() {
+func (dh *CryptoDH) makeCurve25519PrivateKey() {
 	if _, err := io.ReadFull(rand.Reader, dh.privateKey[:]); err != nil {
 		panic("generate random DH private key data error")
 	}
