@@ -20,12 +20,12 @@ const (
 )
 
 type CryptoDH struct {
-	ShareKey         [CRYPTO_DH_KEY_LENGTH]byte //共享密钥(用于双方加密/解密)
-	PrivateKey       [CRYPTO_DH_KEY_LENGTH]byte //私钥
-	PublicKey        [CRYPTO_DH_KEY_LENGTH]byte //公钥
-	ShareKeyBase64   string                     //共享密钥BASE64字符串
-	PublicKeyBase64  string                     //公钥BASE64字符串
-	PrivateKeyBase64 string                     //私钥BASE64字符串
+	shareKey         [CRYPTO_DH_KEY_LENGTH]byte //共享密钥(用于双方加密/解密)
+	privateKey       [CRYPTO_DH_KEY_LENGTH]byte //私钥
+	publicKey        [CRYPTO_DH_KEY_LENGTH]byte //公钥
+	shareKeyBase64   string                     //共享密钥BASE64字符串
+	publicKeyBase64  string                     //公钥BASE64字符串
+	privateKeyBase64 string                     //私钥BASE64字符串
 }
 
 func init() {
@@ -35,26 +35,23 @@ func init() {
 func NewCryptoDH(pri ...[32]byte) (dh *CryptoDH) {
 	dh = &CryptoDH{}
 
-	if len(pri) == 0 {
-		if _, err := io.ReadFull(rand.Reader, dh.PrivateKey[:]); err != nil {
-			panic("generate random DH private key data error")
-		}
+	if len(pri) == 0 { //随机生成私钥
+		dh.makeCurve25519PrivateKey()
 	} else {
-		dh.PrivateKey = pri[0]
+		dh.setPrivateKey(pri[0])
 	}
-
-	curve25519.ScalarBaseMult(&dh.PublicKey, &dh.PrivateKey)
-	dh.PublicKeyBase64 = base64.StdEncoding.EncodeToString(dh.PublicKey[:])
-	dh.PrivateKeyBase64 = base64.StdEncoding.EncodeToString(dh.PrivateKey[:])
+	curve25519.ScalarBaseMult(&dh.publicKey, &dh.privateKey)
+	dh.publicKeyBase64 = base64.StdEncoding.EncodeToString(dh.publicKey[:])
+	dh.privateKeyBase64 = base64.StdEncoding.EncodeToString(dh.privateKey[:])
 	return
 }
 
 //pub 对方的公钥(32字节byte数组)
 //返回key：自己的私钥+对方公钥经DH算法计算出来的加密KEY
 func (dh *CryptoDH) ScalarMult(pub [32]byte) [32]byte {
-	curve25519.ScalarMult(&dh.ShareKey, &dh.PrivateKey, &pub)
-	dh.ShareKeyBase64 = base64.StdEncoding.EncodeToString(dh.ShareKey[:])
-	return dh.ShareKey
+	curve25519.ScalarMult(&dh.shareKey, &dh.privateKey, &pub)
+	dh.shareKeyBase64 = base64.StdEncoding.EncodeToString(dh.shareKey[:])
+	return dh.shareKey
 }
 
 //base 对方的公钥(base64编码)
@@ -67,29 +64,48 @@ func (dh *CryptoDH) ScalarMultBase64(base string) string {
 	}
 	copy(pub[:], s)
 	_ = dh.ScalarMult(pub)
-	return dh.ShareKeyBase64
+	return dh.shareKeyBase64
 }
 
 func (dh *CryptoDH) GetPrivateKey() [32]byte {
-	return dh.PrivateKey
+	return dh.privateKey
 }
 
 func (dh *CryptoDH) GetPrivateKeyBase64() string {
-	return dh.PrivateKeyBase64
+	return dh.privateKeyBase64
 }
 
 func (dh *CryptoDH) GetPublicKey() [32]byte {
-	return dh.PublicKey
+	return dh.publicKey
 }
 
 func (dh *CryptoDH) GetPublicKeyBase64() string {
-	return dh.PublicKeyBase64
+	return dh.publicKeyBase64
 }
 
 func (dh *CryptoDH) GetShareKey() [32]byte {
-	return dh.ShareKey
+	return dh.shareKey
 }
 
 func (dh *CryptoDH) GetShareKeyBase64() string {
-	return dh.ShareKeyBase64
+	return dh.shareKeyBase64
+}
+
+func (dh *CryptoDH) GetCurve25519KeyPair() (pri, pub [32]byte) {
+	return dh.privateKey, dh.publicKey
+}
+
+func (dh *CryptoDH) GetCurve25519KeyPairBase64() (priBase64, pubBase64 string) {
+	return dh.privateKeyBase64, dh.publicKeyBase64
+}
+
+func (dh *CryptoDH) setPrivateKey(pri [32]byte) {
+	dh.privateKey = pri
+}
+
+func (dh *CryptoDH) makeCurve25519PrivateKey() {
+	if _, err := io.ReadFull(rand.Reader, dh.privateKey[:]); err != nil {
+		panic("generate random DH private key data error")
+	}
+	return
 }
