@@ -35,8 +35,6 @@ func (c *CryptoAES_OFB) Encrypt(in []byte) (out []byte, err error) {
 	}
 	var data = make([]byte, len(in))
 	copy(data, in)
-	blockSize := block.BlockSize()
-	data = goaes.PKCS7Padding(data, blockSize)
 	blockMode := cipher.NewOFB(block, c.iv)
 	out = make([]byte, len(data))
 	blockMode.XORKeyStream(out, data)
@@ -62,7 +60,6 @@ func (c *CryptoAES_OFB) Decrypt(in []byte) (out []byte, err error) {
 	blockMode := cipher.NewOFB(block, c.iv)
 	out = make([]byte, len(in))
 	blockMode.XORKeyStream(out, in)
-	out = goaes.PKCS7UnPadding(out)
 	return
 }
 
