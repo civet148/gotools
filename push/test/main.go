@@ -5,6 +5,7 @@ import (
 	"github.com/civet148/gotools/push"
 	_ "github.com/civet148/gotools/push/apns"
 	_ "github.com/civet148/gotools/push/fcm"
+	_ "github.com/civet148/gotools/push/huawei"
 	_ "github.com/civet148/gotools/push/jpush"
 	_ "github.com/civet148/gotools/push/umeng"
 	_ "github.com/civet148/gotools/push/xinge"
@@ -15,8 +16,9 @@ func main() {
 	//JPushMessage()  //JPUSH(极光)
 	//FcmMessage()    //FCM(Google FireBase)
 	//UmengMessage()  //Umeng(友盟)
-	XingeMessage() //信鸽(tencent)
+	//XingeMessage() //信鸽(tencent)
 	//ApnsMessage()   //APNs(Apple)
+	HuaweiMessage()
 }
 
 func JPushMessage() {
@@ -37,7 +39,7 @@ func JPushMessage() {
 		},
 	}
 
-	JPUSH, err := push.GetAdapter(push.AdapterType_JPush, strAppKey, strSecret, isProdEnv)
+	JPUSH, err := push.New(push.AdapterType_JPush, strAppKey, strSecret, isProdEnv)
 	if err != nil {
 		log.Error("%v", err.Error())
 		return
@@ -65,7 +67,7 @@ func FcmMessage() {
 			"id":   "10086",
 		},
 	}
-	FCM, err := push.GetAdapter(push.AdapterType_Fcm, strApiKey)
+	FCM, err := push.New(push.AdapterType_Fcm, strApiKey)
 	if err != nil {
 		log.Error("%v", err.Error())
 		return
@@ -93,7 +95,9 @@ func ApnsMessage() {
 			"id":   "10086",
 		},
 	}
-	APNs, err := push.GetAdapter(push.AdapterType_Apns, strAuthKeyFile, strKeyID, strTeamID, strTopic)
+
+	var prod = true //是否生产环境(true=生产环境 false=开发环境) production environment ? (true or false)
+	APNs, err := push.New(push.AdapterType_Apns, strAuthKeyFile, strKeyID, strTeamID, strTopic, prod)
 	if err != nil {
 		log.Error("%v", err.Error())
 		return
@@ -111,7 +115,7 @@ func UmengMessage() {
 	var strAppSecret = "jynhjnhhlcgt298ke9q6abpwz3n1j1pv"
 	var strToken = "6a17coue30csp91mxy8zafb29f570001f3yaxhw913lx" //iOS 64字节 安卓 44字节
 	var strActivity = "org.mychat.ui.LaunchActivity"
-	Umeng, err := push.GetAdapter(push.AdatperType_Umeng, strAppKey, strAppSecret, strActivity)
+	Umeng, err := push.New(push.AdatperType_Umeng, strAppKey, strAppSecret, strActivity)
 	if err != nil {
 		log.Error("%v", err.Error())
 		return
@@ -153,7 +157,7 @@ func XingeMessage() {
 		},
 	}
 
-	XinGe, err := push.GetAdapter(push.AdapterType_XinGe, strAppKey, strSecret, isProdEnv)
+	XinGe, err := push.New(push.AdapterType_XinGe, strAppKey, strSecret, isProdEnv)
 	if err != nil {
 		log.Error("%v", err.Error())
 		return
@@ -162,5 +166,36 @@ func XingeMessage() {
 		XinGe.Debug(true)
 		MsgID, err := XinGe.PushNotification(&msg)
 		log.Debug("XinGe msg id [%v] error [%v]", MsgID, err)
+	}
+}
+
+func HuaweiMessage() {
+
+	var strAppId = "b1b86bd2a163223b8"
+	var strAppSecret = "9b99c05c232342344b5c367z737"
+	var strChannelId = "com.yourapp.polestar"
+	var strActivity = "org.polestar.ui.LaunchActivity"
+	var strToken = "6a17coue30csp91mxy8zafb29f570001f3yaxhwz" //iOS 64字节 安卓40字节
+
+	msg := push.Notification{
+		AudienceType: push.AUDIENCE_TYPE_REGID_TOKEN,
+		Audiences:    []string{strToken},
+		Title:        "this is message title",
+		Alert:        "you have a new message",
+		Extra: push.PushExtra{
+			"type": "1",
+			"id":   "10086",
+		},
+	}
+
+	Huawei, err := push.New(push.AdatperType_Huawei, strAppId, strAppSecret, strChannelId, strActivity)
+	if err != nil {
+		log.Error("%v", err.Error())
+		return
+	}
+	if Huawei != nil {
+		Huawei.Debug(true)
+		MsgID, err := Huawei.PushNotification(&msg)
+		log.Debug("Huawei msg id [%v] error [%v]", MsgID, err)
 	}
 }

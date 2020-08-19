@@ -158,7 +158,7 @@ type Response struct {
 
 func init() {
 
-	if err := push.Register(push.AdatperType_Umeng, New); err != nil {
+	if err := push.Register(push.AdatperType_Umeng, newUMENG); err != nil {
 		log.Error("register %v instance error [%v]", push.AdatperType_Umeng, err.Error())
 		panic("register instance failed")
 	}
@@ -168,7 +168,7 @@ func init() {
 //args[0] => appkey   string 		[必填]友盟App key
 //args[1] => secret   string 		[必填]友盟App master secret
 //args[2] => activity string 		[可选]推送通知点击跳转activity
-func New(args ...interface{}) push.IPush {
+func newUMENG(args ...interface{}) push.IPush {
 
 	var nArgs = len(args)
 	if nArgs < UMENG_PARAMS_COUNT {

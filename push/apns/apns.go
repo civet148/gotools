@@ -10,29 +10,29 @@ import (
 )
 
 type Apns struct {
-	topic  string
-	client *apns2.Client
+	Topic  string
+	Client *apns2.Client
 }
 
 func init() {
 
-	if err := push.Register(push.AdapterType_Apns, New); err != nil {
+	if err := push.Register(push.AdapterType_Apns, newAPNS); err != nil {
 		log.Error("register %v instance error [%v]", push.AdapterType_Apns, err.Error())
 		panic("register instance failed")
 	}
 }
 
-var APNS_PARAMS_COUNT = 4
+var APNS_PARAMS_COUNT = 5
 
 //创建APNs推送接口对象(create APNs push object)
-//args[0] => strAuthKeyFile APNs auth key file AuthKey_XXXXX.p8 (string)
-//args[1] => strKeyID APNs key id (string)
-//args[2] => strTeamID APNs team id (string)
-//args[3] => strTopic APNs bundle id of your app (string)
-func New(args ...interface{}) push.IPush {
+//args[0] => strAuthKeyFile (string) APNs auth key file AuthKey_XXXXX.p8
+//args[1] => strKeyID (string) APNs key id
+//args[2] => strTeamID (string) APNs team id
+//args[3] => strTopic (string) APNs bundle id of your app
+//args[4] => bProd (bool)   APNs production environment
+func newAPNS(args ...interface{}) push.IPush {
 
 	if len(args) != APNS_PARAMS_COUNT {
-
 		panic(fmt.Errorf("expect %v parameters, got %v", APNS_PARAMS_COUNT, len(args))) //参数个数错误(wrong parameters count)
 	}
 	strAuthKeyFile := args[0].(string)
@@ -42,15 +42,20 @@ func New(args ...interface{}) push.IPush {
 		panic(err.Error())
 	}
 
-	return &Apns{
+	ac := &Apns{
 
-		client: apns2.NewTokenClient(&token.Token{
+		Client: apns2.NewTokenClient(&token.Token{
 			AuthKey: authKey,
 			KeyID:   args[1].(string),
 			TeamID:  args[2].(string),
 		}),
-		topic: args[3].(string),
+		Topic: args[3].(string),
 	}
+
+	if args[4].(bool) {
+		ac.Client.Production()
+	}
+	return ac
 }
 
 //push message to device
@@ -65,7 +70,7 @@ func (a *Apns) PushNotification(msg *push.Notification) (MsgID string, err error
 
 	var notification = &apns2.Notification{
 		DeviceToken: msg.Audiences[0],
-		Topic:       a.topic,
+		Topic:       a.Topic,
 	}
 
 	Payload := payload.NewPayload().
@@ -78,7 +83,7 @@ func (a *Apns) PushNotification(msg *push.Notification) (MsgID string, err error
 	notification.Payload = Payload
 
 	var resp *apns2.Response
-	if resp, err = a.client.Push(notification); err != nil {
+	if resp, err = a.Client.Push(notification); err != nil {
 		log.Error("APNs: push message error [%v]", err.Error())
 		return
 	}
