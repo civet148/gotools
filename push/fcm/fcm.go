@@ -269,7 +269,7 @@ type Client struct {
 
 func init() {
 
-	if err := push.Register(push.AdapterType_Fcm, New); err != nil {
+	if err := push.Register(push.AdapterType_Fcm, newFCM); err != nil {
 		log.Error("register %v instance error [%v]", push.AdapterType_Fcm, err.Error())
 		panic("register instance failed")
 	}
@@ -340,7 +340,7 @@ func (f *Client) Failed(response *Response) error {
 
 //创建极光推送接口对象
 //args[0] => apikey 开发者API密钥(string)
-func New(args ...interface{}) push.IPush {
+func newFCM(args ...interface{}) push.IPush {
 
 	if len(args) != FMC_PARAMS_COUNT {
 

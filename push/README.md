@@ -71,7 +71,7 @@ func JPushMessage() {
 		Extra:        &PushExtra{Type: 1, ChatID: 10086},
 	}
 
-	JPUSH, err := push.GetAdapter(push.AdapterType_JPush, strAppKey, strSecret, isProdEnv)
+	JPUSH, err := push.New(push.AdapterType_JPush, strAppKey, strSecret, isProdEnv)
 	if err != nil {
 		log.Error("%v", err.Error())
 		return
@@ -96,7 +96,7 @@ func FcmMessage() {
 		Alert:        "you have a new message",
 		Extra:        &PushExtra{Type: 1, ChatID: 10086},
 	}
-	FCM, err := push.GetAdapter(push.AdapterType_Fcm, strApiKey)
+	FCM, err := push.New(push.AdapterType_Fcm, strApiKey)
 	if err != nil {
 		log.Error("%v", err.Error())
 		return
@@ -121,7 +121,7 @@ func ApnsMessage() {
 		Alert:        "you have a new message",
 		Extra:        &PushExtra{Type: 1, ChatID: 10086},
 	}
-	APNs, err := push.GetAdapter(push.AdapterType_Apns, strAuthKeyFile, strKeyID, strTeamID, strTopic)
+	APNs, err := push.New(push.AdapterType_Apns, strAuthKeyFile, strKeyID, strTeamID, strTopic)
 	if err != nil {
 		log.Error("%v", err.Error())
 		return
@@ -138,7 +138,7 @@ func UmengMessage() {
 	var strAppKey = "5e1qfcp30cxfb29u570k01f3"
 	var strAppSecret = "jynhjnhhlcgt298ke9q6abpwz3n1j1pv"
 	var strToken = "6a17coue30csp91mxy8zafb29f570001f3yaxhw913lx" //iOS 64字节 安卓 44字节
-	Umeng, err := push.GetAdapter(push.AdatperType_Umeng, strAppKey, strAppSecret)
+	Umeng, err := push.New(push.AdatperType_Umeng, strAppKey, strAppSecret)
 	if err != nil {
 		log.Error("%v", err.Error())
 		return
@@ -173,7 +173,7 @@ func XingeMessage() {
 		Extra:        &PushExtra{Type: 1, ChatID: 10086},
 	}
 
-	XinGe, err := push.GetAdapter(push.AdapterType_XinGe, strAppKey, strSecret, isProdEnv)
+	XinGe, err := push.New(push.AdapterType_XinGe, strAppKey, strSecret, isProdEnv)
 	if err != nil {
 		log.Error("%v", err.Error())
 		return

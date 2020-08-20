@@ -15,11 +15,12 @@ var (
 )
 
 var (
-	AdapterType_JPush AdapterType = 1 //极光推送
-	AdapterType_Fcm   AdapterType = 2 //谷歌推送
-	AdapterType_Apns  AdapterType = 3 //苹果推送
-	AdatperType_Umeng AdapterType = 4 //友盟推送
-	AdapterType_XinGe AdapterType = 5 //信鸽推送
+	AdapterType_JPush  AdapterType = 1 //极光推送
+	AdapterType_Fcm    AdapterType = 2 //谷歌推送
+	AdapterType_Apns   AdapterType = 3 //苹果推送
+	AdatperType_Umeng  AdapterType = 4 //友盟推送
+	AdapterType_XinGe  AdapterType = 5 //信鸽推送
+	AdatperType_Huawei AdapterType = 6 //华为推送
 )
 
 func (t AdapterType) String() (name string) {
@@ -34,6 +35,8 @@ func (t AdapterType) String() (name string) {
 		name = "Umeng"
 	case AdapterType_XinGe:
 		name = "XinGe"
+	case AdatperType_Huawei:
+		name = "Hauwei"
 	default:
 		name = "<unknown>"
 	}
@@ -96,7 +99,7 @@ func Register(adapter AdapterType, ins Instance) (err error) {
 }
 
 //get adapter instance with args...
-func GetAdapter(adapter AdapterType, args ...interface{}) (IPush, error) {
+func New(adapter AdapterType, args ...interface{}) (IPush, error) {
 
 	ins, ok := AdapterMap[adapter]
 	if !ok {

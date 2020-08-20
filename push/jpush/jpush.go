@@ -31,7 +31,7 @@ type JPush struct {
 
 func init() {
 
-	if err := push.Register(push.AdapterType_JPush, New); err != nil {
+	if err := push.Register(push.AdapterType_JPush, newJPUSH); err != nil {
 		log.Error("register %v instance error [%v]", push.AdapterType_JPush, err.Error())
 		panic("register instance failed")
 	}
@@ -42,7 +42,7 @@ func init() {
 //args[1] => secret 极光账号密码(string)
 //args[2] => is_prod 是否正式环境(bool)
 //New(appkey, secret, is_prod)
-func New(args ...interface{}) push.IPush {
+func newJPUSH(args ...interface{}) push.IPush {
 
 	if len(args) != JPUSH_PARAMS_COUNT {
 

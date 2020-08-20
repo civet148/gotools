@@ -184,18 +184,18 @@ type xingeResponse struct {
 
 func init() {
 
-	if err := push.Register(push.AdapterType_XinGe, New); err != nil {
+	if err := push.Register(push.AdapterType_XinGe, newXINGE); err != nil {
 		log.Error("register %v instance error [%v]", push.AdapterType_XinGe, err.Error())
 		panic("register instance failed")
 	}
 }
 
-//创建极光推送接口对象
+//创建信鸽推送接口对象
 //args[0] => appKey 	string 信鸽app key
 //args[1] => appSecret 	string 信鸽app secret
 //args[2] => isProd   	bool   是否iOS正式环境（true=正式环境 false=测试环境）
-//args[3] => activity string 		[可选]推送通知点击跳转activity
-func New(args ...interface{}) push.IPush {
+//args[3] => activity   string [可选]推送通知点击跳转activity
+func newXINGE(args ...interface{}) push.IPush {
 
 	var nArgs = len(args)
 	if nArgs < XINGE_PARAMS_COUNT {
