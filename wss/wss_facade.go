@@ -33,6 +33,11 @@ const (
 	NETWORK_UNIX  = "unix"
 )
 
+const (
+	WSS_TLS_CERT = "cert"
+	WSS_TLS_KEY  = "key"
+)
+
 type SocketHandler interface {
 	OnAccept(c *SocketClient)
 	OnReceive(c *SocketClient, data []byte, length int, from string)
