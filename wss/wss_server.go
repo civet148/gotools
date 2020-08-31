@@ -38,7 +38,7 @@ func NewServer(url string) *SocketServer {
 
 //TCP       => 		tcp://127.0.0.1:6666
 //UDP       => 		udp://127.0.0.1:6667
-//WebSocket => 		ws://127.0.0.1:6668 wss://127.0.0.1:6668
+//WebSocket => 		ws://127.0.0.1:6668/ wss://127.0.0.1:6668/websocket?cert=cert.pem&key=key.pem
 func (w *SocketServer) Listen(handler SocketHandler) (err error) {
 	w.handler = handler
 	if err = w.sock.Listen(); err != nil {

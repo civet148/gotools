@@ -1,6 +1,7 @@
 package websock
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/civet148/gotools/log"
 	"github.com/civet148/gotools/parser"
@@ -33,16 +34,25 @@ func (s *socket) Listen() (err error) {
 	if s.ui.GetPath() == "" {
 		s.ui.Path = "/"
 	}
+
 	engine.GET(s.ui.Path, s.webSocketRegister)
-	url := fmt.Sprintf("%s://%s%s", s.ui.Scheme, s.ui.Host, s.ui.Path)
-	log.Debugf("listen url [%v] -> GET", url)
+	strCertFile := s.ui.Queries[wss.WSS_TLS_CERT]
+	strKeyFile := s.ui.Queries[wss.WSS_TLS_KEY]
+
 	go func() {
-		if err = engine.Run(s.ui.Host); err != nil {
-			log.Errorf(err.Error())
+		if s.ui.Scheme == wss.URL_SCHEME_WSS {
+			log.Debugf("listen GET [%s://%s/%s] -> cert [%s] key [%s]", s.ui.Scheme, s.ui.Host, s.ui.Path, strCertFile, strKeyFile)
+			err = engine.RunTLS(s.ui.Host, strCertFile, strKeyFile)
+		} else {
+			log.Debugf("listen GET [%s://%s/%s]", s.ui.Scheme, s.ui.Host, s.ui.Path)
+			err = engine.Run(s.ui.Host)
+		}
+
+		if err != nil {
+			s.closed = true
+			log.Errorf("listen websocket closing with error [%v]", err.Error())
 			return
 		}
-		s.closed = true
-		log.Warnf("listen url [%v] -> GET closed...", url)
 	}()
 
 	return
@@ -71,6 +81,9 @@ func (s *socket) Connect() (err error) {
 	url := fmt.Sprintf("%v://%v/%v", s.ui.Scheme, s.ui.Host, s.ui.Path)
 	log.Debugf("connect to url [%v]", url)
 	dialer := &websocket.Dialer{}
+	if s.ui.Scheme == wss.URL_SCHEME_WSS {
+		dialer.TLSClientConfig = &tls.Config{RootCAs: nil, InsecureSkipVerify: true}
+	}
 	if s.conn, _, err = dialer.Dial(url, nil); err != nil {
 		log.Errorf(err.Error())
 		return

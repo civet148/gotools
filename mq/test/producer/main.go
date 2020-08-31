@@ -15,7 +15,7 @@ func main() {
 	var strQueueName = "TOPIC.QUEUE"
 
 	strConnUrl := "amqp://127.0.0.1:5672"
-	rabbitMQ, _ := mq.GetAdapter(mq.Adapter_RabbitMQ)
+	rabbitMQ, _ := mq.NewMQ(mq.Adapter_RabbitMQ)
 	if err = rabbitMQ.Connect(mq.Mode_Topic, strConnUrl); err != nil {
 		log.Errorf("connect to MQ broker error [%v]", err.Error())
 		return

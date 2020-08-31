@@ -79,7 +79,7 @@ func (c *MyConsumer) OnConsume(adapter mq.Adapter, strBindingKey, strQueueName, 
 
 func TestDirect(mode mq.Adapter, strUrl string) (err error) {
 
-	DirectMQ, _ := mq.GetAdapter(mode)
+	DirectMQ, _ := mq.NewMQ(mode)
 	DirectMQ.Debug(false)
 	if err = DirectMQ.Connect(mq.Mode_Direct, strUrl); err != nil {
 
@@ -105,7 +105,7 @@ func TestDirect(mode mq.Adapter, strUrl string) (err error) {
 }
 
 func TestTopic(mode mq.Adapter, strUrl string) (err error) {
-	TopicMQ, _ := mq.GetAdapter(mode)
+	TopicMQ, _ := mq.NewMQ(mode)
 
 	TopicMQ.Debug(false)
 	if err = TopicMQ.Connect(mq.Mode_Topic, strUrl); err != nil {
@@ -143,7 +143,7 @@ func TestTopic(mode mq.Adapter, strUrl string) (err error) {
 
 func TestFanout(mode mq.Adapter, strUrl string) (err error) {
 
-	FanoutMQ, _ := mq.GetAdapter(mode)
+	FanoutMQ, _ := mq.NewMQ(mode)
 	FanoutMQ.Debug(false)
 	if err = FanoutMQ.Connect(mq.Mode_Fanout, strUrl); err != nil {
 

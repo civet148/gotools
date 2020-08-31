@@ -13,7 +13,7 @@ const (
 )
 
 func main() {
-	client("ws://127.0.0.1:6668/websocket")
+	client("wss://127.0.0.1:6668/websocket")
 }
 
 func client(strUrl string) (err error) {

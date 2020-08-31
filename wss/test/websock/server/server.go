@@ -12,19 +12,19 @@ const (
 )
 
 type Server struct {
-	service *wss.SocketServer
+	*wss.SocketServer
 }
 
 func main() {
-	server("ws://0.0.0.0:6668/websocket")
+	server("wss://0.0.0.0:6668/websocket?cert=cert.pem&key=key.pem")
 	var c = make(chan bool, 1)
 	<-c //block main go routine
 }
 
 func server(strUrl string) {
 	var server Server
-	server.service = wss.NewServer(strUrl)
-	server.service.Listen(&server)
+	server.SocketServer = wss.NewServer(strUrl)
+	_ = server.Listen(&server)
 }
 
 func (s *Server) OnAccept(c *wss.SocketClient) {

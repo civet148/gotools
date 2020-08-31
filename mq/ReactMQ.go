@@ -161,8 +161,8 @@ func Register(adapter Adapter, ins Instance) {
 	return
 }
 
-//适配器: 获取MQ对象
-func GetAdapter(adapter Adapter) (IReactMQ, error) {
+//适配器: 创建MQ对象
+func NewMQ(adapter Adapter) (IReactMQ, error) {
 
 	ins, ok := AdapterMap[adapter]
 	if !ok {
