@@ -16,7 +16,10 @@ type Server struct {
 }
 
 func main() {
-	server("wss://0.0.0.0:6668/websocket?cert=cert.pem&key=key.pem")
+	var strUrl string
+	//strUrl = "ws://0.0.0.0:6668/websocket" //web socket
+	strUrl = "wss://0.0.0.0:6668/websocket?cert=cert.pem&key=key.pem" //web socket on TLS
+	server(strUrl)
 	var c = make(chan bool, 1)
 	<-c //block main go routine
 }

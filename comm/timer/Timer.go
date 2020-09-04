@@ -13,7 +13,7 @@ var (
 )
 
 const (
-	TIKER_INTERVAL_MS = 5
+	TICKER_INTERVAL_MS = 100
 )
 
 type ITimer interface {
@@ -41,7 +41,7 @@ func init() {
 
 func startMonitor() {
 
-	ticker := time.NewTicker(TIKER_INTERVAL_MS * time.Millisecond) //n毫秒触发一次
+	ticker := time.NewTicker(TICKER_INTERVAL_MS * time.Millisecond) //n毫秒触发一次
 
 	for {
 		select {
@@ -109,8 +109,8 @@ func SetTimer(this interface{}, id int, elapse int, repeat int, param interface{
 		return false
 	}
 
-	if elapse < TIKER_INTERVAL_MS {
-		elapse = TIKER_INTERVAL_MS
+	if elapse < TICKER_INTERVAL_MS {
+		elapse = TICKER_INTERVAL_MS
 	}
 
 	strKey := getTimerKey(this, id)
