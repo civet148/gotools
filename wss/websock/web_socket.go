@@ -41,10 +41,10 @@ func (s *socket) Listen() (err error) {
 
 	go func() {
 		if s.ui.Scheme == wss.URL_SCHEME_WSS {
-			log.Debugf("listen GET [%s://%s/%s] -> cert [%s] key [%s]", s.ui.Scheme, s.ui.Host, s.ui.Path, strCertFile, strKeyFile)
+			log.Debugf("listen GET [%s://%s%s] -> cert [%s] key [%s]", s.ui.Scheme, s.ui.Host, s.ui.Path, strCertFile, strKeyFile)
 			err = engine.RunTLS(s.ui.Host, strCertFile, strKeyFile)
 		} else {
-			log.Debugf("listen GET [%s://%s/%s]", s.ui.Scheme, s.ui.Host, s.ui.Path)
+			log.Debugf("listen GET [%s://%s%s]", s.ui.Scheme, s.ui.Host, s.ui.Path)
 			err = engine.Run(s.ui.Host)
 		}
 
@@ -78,7 +78,7 @@ func (s *socket) Accept() wss.Socket {
 }
 
 func (s *socket) Connect() (err error) {
-	url := fmt.Sprintf("%v://%v/%v", s.ui.Scheme, s.ui.Host, s.ui.Path)
+	url := fmt.Sprintf("%v://%v%v", s.ui.Scheme, s.ui.Host, s.ui.Path)
 	log.Debugf("connect to url [%v]", url)
 	dialer := &websocket.Dialer{}
 	if s.ui.Scheme == wss.URL_SCHEME_WSS {
