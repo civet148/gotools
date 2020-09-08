@@ -193,7 +193,6 @@ func (s *socket) webSocketRegister(ctx *gin.Context) {
 
 func (s *socket) webSocketCloseHandler(code int, text string) (err error) {
 	log.Debugf("close code [%v] text [%v]", code, text)
-	_ = s.conn.Close()
 	return
 }
 
