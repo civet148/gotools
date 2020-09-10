@@ -4,3 +4,4 @@
 /push/.idea
 /log/test/*.log
 /.idea/
+/go.sum
