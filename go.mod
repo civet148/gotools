@@ -11,6 +11,8 @@ require (
 	github.com/golang/protobuf v1.4.0
 	github.com/gorilla/websocket v1.4.1
 	github.com/micro/go-micro v1.18.0
+	github.com/micro/go-plugins/registry/consul v0.0.0-20200119172437-4fe21aa238fd
+	github.com/micro/go-plugins/registry/zookeeper v0.0.0-20200119172437-4fe21aa238fd
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
 	github.com/sideshow/apns2 v0.20.0
 	github.com/spf13/viper v1.6.1
@@ -18,4 +20,5 @@ require (
 	github.com/zheng-ji/goSnowFlake v0.0.0-20180906112711-fc763800eec9
 	go.etcd.io/etcd v3.3.18+incompatible
 	golang.org/x/crypto v0.0.0-20191108234033-bd318be0434a
+	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
