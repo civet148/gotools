@@ -5,7 +5,6 @@ go 1.13
 require (
 	github.com/Shopify/sarama v1.24.1
 	github.com/bsm/sarama-cluster v2.1.15+incompatible
-	github.com/civet148/demos/micro-grpc v0.0.0-20200909080449-3fc711c2ff96 // indirect
 	github.com/eclipse/paho.mqtt.golang v1.2.0
 	github.com/garyburd/redigo v1.6.0
 	github.com/gin-gonic/gin v1.5.0
