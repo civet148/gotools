@@ -10,6 +10,8 @@ import (
 	"github.com/micro/go-micro/registry/mdns"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/service/grpc"
+	"github.com/micro/go-plugins/registry/consul"
+	"github.com/micro/go-plugins/registry/zookeeper"
 	"time"
 )
 
@@ -95,14 +97,18 @@ func NewServer(endpointType EndpointType, discovery *Discovery) (s server.Server
 
 func newRegistry(endpointType EndpointType, endPoints ...string) (r registry.Registry) {
 
-	regAddrs := registry.Addrs(endPoints...)
+	addrs := registry.Addrs(endPoints...)
 	switch endpointType {
 	case EndpointType_MDNS:
 		r = mdns.NewRegistry()
 	case EndpointType_ETCD:
-		r = etcd.NewRegistry(regAddrs)
+		r = etcd.NewRegistry(addrs)
 	case EndpointType_CONSUL:
+		r = consul.NewRegistry(addrs)
 	case EndpointType_ZOOKEEPER:
+		r = zookeeper.NewRegistry(addrs)
+	default:
+		panic(fmt.Errorf("end point type [%+v] illegal", endpointType))
 	}
 	log.Debugf("[%+v] end points [%+v] -> registry [%+v]", endpointType, endPoints, r)
 	return

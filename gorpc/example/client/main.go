@@ -12,13 +12,18 @@ import (
 )
 
 const (
-	SERVICE_NAME    = "echo"
-	END_POINTS_ETCD = "http://127.0.0.1:2379"
+	SERVICE_NAME              = "echo"
+	END_POINTS_HTTP_ETCD      = "127.0.0.1:2379"
+	END_POINTS_HTTP_CONSUL    = "127.0.0.1:8500"
+	END_POINTS_HTTP_ZOOKEEPER = "127.0.0.1:2181"
 )
 
 func main() {
-	//c := NewClientWithEtcd()
-	c := NewClientWithMDNS()
+	c := NewClientWithEtcd()
+	//c := NewClientWithConsul()
+	//c := NewClientWithZk()
+	//c := NewClientWithMDNS()
+
 	service := echopb.NewEchoServerService(SERVICE_NAME, c)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		"X-User-Id": "lory",
@@ -37,10 +42,20 @@ func main() {
 }
 
 func NewClientWithEtcd() (c client.Client) {
-	endPoints := strings.Split(END_POINTS_ETCD, ",")
+	endPoints := strings.Split(END_POINTS_HTTP_ETCD, ",")
 	return gorpc.NewClient(gorpc.EndpointType_ETCD, endPoints...)
 }
 
 func NewClientWithMDNS() (c client.Client) {
 	return gorpc.NewClient(gorpc.EndpointType_MDNS)
+}
+
+func NewClientWithConsul() (c client.Client) {
+	endPoints := strings.Split(END_POINTS_HTTP_CONSUL, ",")
+	return gorpc.NewClient(gorpc.EndpointType_CONSUL, endPoints...)
+}
+
+func NewClientWithZk() (c client.Client) {
+	endPoints := strings.Split(END_POINTS_HTTP_ZOOKEEPER, ",")
+	return gorpc.NewClient(gorpc.EndpointType_ZOOKEEPER, endPoints...)
 }
