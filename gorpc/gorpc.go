@@ -51,13 +51,32 @@ type Discovery struct {
 	Endpoints   []string // register endpoints of etcd/consul/zookeeper eg. ["192.168.0.10:2379","192.168.0.11:2379"]
 }
 
-func NewClient(endpointType EndpointType, endPoints ...string) (c client.Client) { // returns go-micro client object
+type GoRPC struct {
+	strUser      string       //authentication user
+	strPassword  string       //authentication password
+	endpointType EndpointType //end point type
+}
+
+func NewGoRPC(endpointType EndpointType) (g *GoRPC) {
+	return &GoRPC{
+		endpointType: endpointType,
+	}
+}
+
+//set user and password if required
+func (g *GoRPC) SetAuth(strUser, strPassword string) {
+	g.strUser = strUser
+	g.strPassword = strPassword
+}
+
+//new a go-micro client
+func (g *GoRPC) NewClient(endPoints ...string) (c client.Client) { // returns go-micro client object
 
 	var options []micro.Option
 
-	log.Debugf("endpoint type [%v] end points [%+v]", endpointType, endPoints)
+	log.Debugf("endpoint type [%v] end points [%+v]", g.endpointType, endPoints)
 
-	reg := newRegistry(endpointType, endPoints...)
+	reg := g.newRegistry(endPoints...)
 	if reg != nil {
 		options = append(options, micro.Registry(reg))
 	}
@@ -65,9 +84,10 @@ func NewClient(endpointType EndpointType, endPoints ...string) (c client.Client)
 	return service.Client()
 }
 
-func NewServer(endpointType EndpointType, discovery *Discovery) (s server.Server) { // returns go-micro server object
-	log.Debugf("endpoint type [%v] discovery [%+v]", endpointType, discovery)
-	if len(discovery.Endpoints) == 0 && endpointType != EndpointType_MDNS {
+//new a go-micro server
+func (g *GoRPC) NewServer(discovery *Discovery) (s server.Server) { // returns go-micro server object
+	log.Debugf("endpoint type [%v] discovery [%+v]", g.endpointType, discovery)
+	if len(discovery.Endpoints) == 0 && g.endpointType != EndpointType_MDNS {
 		panic("discovery end points is nil and not EndpointType_MDNS")
 	}
 	if discovery.ServiceName == "" {
@@ -80,11 +100,11 @@ func NewServer(endpointType EndpointType, discovery *Discovery) (s server.Server
 		discovery.TTL = DISCOVERY_DEFAULT_TTL
 	}
 
-	reg := newRegistry(endpointType, discovery.Endpoints...)
+	reg := g.newRegistry(discovery.Endpoints...)
 
 	var options []micro.Option
 	if reg == nil {
-		panic(fmt.Errorf("[%+v] discovery [%+v] -> registry is nil", endpointType, discovery))
+		panic(fmt.Errorf("[%+v] discovery [%+v] -> registry is nil", g.endpointType, discovery))
 	}
 	options = append(options, micro.Registry(reg))
 	options = append(options, micro.RegisterInterval(time.Duration(discovery.Interval)*time.Second))
@@ -95,21 +115,27 @@ func NewServer(endpointType EndpointType, discovery *Discovery) (s server.Server
 	return service.Server()
 }
 
-func newRegistry(endpointType EndpointType, endPoints ...string) (r registry.Registry) {
+func (g *GoRPC) newRegistry(endPoints ...string) (r registry.Registry) {
 
-	addrs := registry.Addrs(endPoints...)
-	switch endpointType {
+	var opts []registry.Option
+
+	opts = append(opts, registry.Addrs(endPoints...))
+
+	switch g.endpointType {
 	case EndpointType_MDNS:
 		r = mdns.NewRegistry()
 	case EndpointType_ETCD:
-		r = etcd.NewRegistry(addrs)
+		if g.strUser != "" && g.strPassword != "" {
+			opts = append(opts, etcd.Auth(g.strUser, g.strPassword))
+		}
+		r = etcd.NewRegistry(opts...)
 	case EndpointType_CONSUL:
-		r = consul.NewRegistry(addrs)
+		r = consul.NewRegistry(opts...)
 	case EndpointType_ZOOKEEPER:
-		r = zookeeper.NewRegistry(addrs)
+		r = zookeeper.NewRegistry(opts...)
 	default:
-		panic(fmt.Errorf("end point type [%+v] illegal", endpointType))
+		panic(fmt.Errorf("end point type [%+v] illegal", g.endpointType))
 	}
-	log.Debugf("[%+v] end points [%+v] -> registry [%+v]", endpointType, endPoints, r)
+	log.Debugf("[%+v] end points [%+v] -> registry [%+v]", g.endpointType, endPoints, r)
 	return
 }

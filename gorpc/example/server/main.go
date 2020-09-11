@@ -41,7 +41,9 @@ func main() {
 }
 
 func NewServerWithEtcd() (s server.Server) {
-	return gorpc.NewServer(gorpc.EndpointType_ETCD, &gorpc.Discovery{
+	var g *gorpc.GoRPC
+	g = gorpc.NewGoRPC(gorpc.EndpointType_ETCD)
+	return g.NewServer(&gorpc.Discovery{
 		ServiceName: SERVICE_NAME,
 		RpcAddr:     RPC_ADDR,
 		Interval:    3,
@@ -51,7 +53,9 @@ func NewServerWithEtcd() (s server.Server) {
 }
 
 func NewServerWithMDNS() (s server.Server) {
-	return gorpc.NewServer(gorpc.EndpointType_MDNS, &gorpc.Discovery{
+	var g *gorpc.GoRPC
+	g = gorpc.NewGoRPC(gorpc.EndpointType_MDNS)
+	return g.NewServer(&gorpc.Discovery{
 		ServiceName: SERVICE_NAME,
 		RpcAddr:     RPC_ADDR,
 		Interval:    3,
@@ -61,7 +65,9 @@ func NewServerWithMDNS() (s server.Server) {
 }
 
 func NewServerWithConsul() (s server.Server) {
-	return gorpc.NewServer(gorpc.EndpointType_CONSUL, &gorpc.Discovery{
+	var g *gorpc.GoRPC
+	g = gorpc.NewGoRPC(gorpc.EndpointType_CONSUL)
+	return g.NewServer(&gorpc.Discovery{
 		ServiceName: SERVICE_NAME,
 		RpcAddr:     RPC_ADDR,
 		Interval:    3,
@@ -71,7 +77,9 @@ func NewServerWithConsul() (s server.Server) {
 }
 
 func NewServerWithZK() (s server.Server) {
-	return gorpc.NewServer(gorpc.EndpointType_ZOOKEEPER, &gorpc.Discovery{
+	var g *gorpc.GoRPC
+	g = gorpc.NewGoRPC(gorpc.EndpointType_ZOOKEEPER)
+	return g.NewServer(&gorpc.Discovery{
 		ServiceName: SERVICE_NAME,
 		RpcAddr:     RPC_ADDR,
 		Interval:    3,
