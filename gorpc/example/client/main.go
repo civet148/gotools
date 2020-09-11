@@ -12,19 +12,18 @@ import (
 )
 
 const (
-	SERVICE_NAME              = "echo"
-	END_POINTS_HTTP_ETCD      = "127.0.0.1:2379"
-	END_POINTS_HTTP_CONSUL    = "127.0.0.1:8500"
-	END_POINTS_HTTP_ZOOKEEPER = "127.0.0.1:2181"
+	SERVICE_NAME           = "echo"
+	END_POINTS_HTTP_ETCD   = "http://127.0.0.1:2379"
+	END_POINTS_HTTP_CONSUL = "http://127.0.0.1:8500"
+	END_POINTS_ZOOKEEPER   = "127.0.0.1:2181"
 )
 
 func main() {
 
-	c := NewClientWithEtcd()
+	c := NewClientWithMDNS()
+	//c := NewClientWithEtcd()
 	//c := NewClientWithConsul()
 	//c := NewClientWithZk()
-	//c := NewClientWithMDNS()
-
 	service := echopb.NewEchoServerService(SERVICE_NAME, c)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		"X-User-Id": "lory",
@@ -65,6 +64,6 @@ func NewClientWithConsul() (c client.Client) {
 func NewClientWithZk() (c client.Client) {
 	var g *gorpc.GoRPC
 	g = gorpc.NewGoRPC(gorpc.EndpointType_ZOOKEEPER)
-	endPoints := strings.Split(END_POINTS_HTTP_ZOOKEEPER, ",")
+	endPoints := strings.Split(END_POINTS_ZOOKEEPER, ",")
 	return g.NewClient(endPoints...)
 }

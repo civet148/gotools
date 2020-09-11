@@ -52,8 +52,6 @@ type Discovery struct {
 }
 
 type GoRPC struct {
-	strUser      string       //authentication user
-	strPassword  string       //authentication password
 	endpointType EndpointType //end point type
 }
 
@@ -61,12 +59,6 @@ func NewGoRPC(endpointType EndpointType) (g *GoRPC) {
 	return &GoRPC{
 		endpointType: endpointType,
 	}
-}
-
-//set user and password if required
-func (g *GoRPC) SetAuth(strUser, strPassword string) {
-	g.strUser = strUser
-	g.strPassword = strPassword
 }
 
 //new a go-micro client
@@ -116,18 +108,13 @@ func (g *GoRPC) NewServer(discovery *Discovery) (s server.Server) { // returns g
 }
 
 func (g *GoRPC) newRegistry(endPoints ...string) (r registry.Registry) {
-
 	var opts []registry.Option
-
 	opts = append(opts, registry.Addrs(endPoints...))
 
 	switch g.endpointType {
 	case EndpointType_MDNS:
 		r = mdns.NewRegistry()
 	case EndpointType_ETCD:
-		if g.strUser != "" && g.strPassword != "" {
-			opts = append(opts, etcd.Auth(g.strUser, g.strPassword))
-		}
 		r = etcd.NewRegistry(opts...)
 	case EndpointType_CONSUL:
 		r = consul.NewRegistry(opts...)
