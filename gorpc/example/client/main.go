@@ -19,6 +19,7 @@ const (
 )
 
 func main() {
+
 	c := NewClientWithEtcd()
 	//c := NewClientWithConsul()
 	//c := NewClientWithZk()
@@ -42,20 +43,28 @@ func main() {
 }
 
 func NewClientWithEtcd() (c client.Client) {
+	var g *gorpc.GoRPC
+	g = gorpc.NewGoRPC(gorpc.EndpointType_ETCD)
 	endPoints := strings.Split(END_POINTS_HTTP_ETCD, ",")
-	return gorpc.NewClient(gorpc.EndpointType_ETCD, endPoints...)
+	return g.NewClient(endPoints...)
 }
 
 func NewClientWithMDNS() (c client.Client) {
-	return gorpc.NewClient(gorpc.EndpointType_MDNS)
+	var g *gorpc.GoRPC
+	g = gorpc.NewGoRPC(gorpc.EndpointType_MDNS)
+	return g.NewClient()
 }
 
 func NewClientWithConsul() (c client.Client) {
+	var g *gorpc.GoRPC
+	g = gorpc.NewGoRPC(gorpc.EndpointType_CONSUL)
 	endPoints := strings.Split(END_POINTS_HTTP_CONSUL, ",")
-	return gorpc.NewClient(gorpc.EndpointType_CONSUL, endPoints...)
+	return g.NewClient(endPoints...)
 }
 
 func NewClientWithZk() (c client.Client) {
+	var g *gorpc.GoRPC
+	g = gorpc.NewGoRPC(gorpc.EndpointType_ZOOKEEPER)
 	endPoints := strings.Split(END_POINTS_HTTP_ZOOKEEPER, ",")
-	return gorpc.NewClient(gorpc.EndpointType_ZOOKEEPER, endPoints...)
+	return g.NewClient(endPoints...)
 }
