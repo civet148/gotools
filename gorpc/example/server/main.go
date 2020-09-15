@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	SERVICE_NAME              = "echo"
-	END_POINTS_HTTP_ETCD      = "127.0.0.1:2379" //http port
-	END_POINTS_HTTP_CONSUL    = "127.0.0.1:8500" //http port
-	END_POINTS_HTTP_ZOOKEEPER = "127.0.0.1:2181" //http port
-	RPC_ADDR                  = "127.0.0.1:8899" //RPC service listen address
+	SERVICE_NAME           = "echo"
+	END_POINTS_HTTP_ETCD   = "http://127.0.0.1:2379"
+	END_POINTS_HTTP_CONSUL = "http://127.0.0.1:8500"
+	END_POINTS_ZOOKEEPER   = "127.0.0.1:2181"
+	RPC_ADDR               = "127.0.0.1:8899" //RPC service listen address
 )
 
 type EchoServerImpl struct {
@@ -23,10 +23,11 @@ type EchoServerImpl struct {
 
 func main() {
 	ch := make(chan bool, 1)
-	srv := NewServerWithEtcd()
-	//srv := NewServerWithMDNS()
+	srv := NewServerWithMDNS()
+	//srv := NewServerWithEtcd()
 	//srv := NewServerWithConsul()
 	//srv := NewServerWithZK()
+
 	if err := echopb.RegisterEchoServerHandler(srv, new(EchoServerImpl)); err != nil {
 		log.Error(err.Error())
 		return
@@ -84,7 +85,7 @@ func NewServerWithZK() (s server.Server) {
 		RpcAddr:     RPC_ADDR,
 		Interval:    3,
 		TTL:         10,
-		Endpoints:   strings.Split(END_POINTS_HTTP_ZOOKEEPER, ","),
+		Endpoints:   strings.Split(END_POINTS_ZOOKEEPER, ","),
 	})
 }
 
