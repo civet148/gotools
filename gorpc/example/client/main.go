@@ -33,7 +33,6 @@ func main() {
 
 		if pong, err := service.Call(ctx, &echopb.Ping{Text: "Ping"}); err != nil {
 			log.Error(err.Error())
-			return
 		} else {
 			log.Infof("server response [%+v]", pong)
 		}
