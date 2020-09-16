@@ -65,7 +65,7 @@ func NewGoRPC(endpointType EndpointType) (g *GoRPC) {
 }
 
 //md -> metadata of RPC call, set to nil if have no any meta-data
-//timeout -> timeout seconds of RPC call, if <=0 will ignore it
+//timeout -> timeout seconds of RPC call, if <=0 will set it to DEFAULT_RPC_TIMEOUT
 func NewContext(md map[string]string, timeout int) context.Context {
 	var ctx = context.Background()
 	if timeout <= 0 {
