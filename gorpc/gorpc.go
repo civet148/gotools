@@ -20,6 +20,7 @@ import (
 const (
 	DISCOVERY_DEFAULT_INTERVAL = 3
 	DISCOVERY_DEFAULT_TTL      = 10
+	DEFAULT_RPC_TIMEOUT        = 30
 )
 
 type EndpointType int
@@ -67,9 +68,10 @@ func NewGoRPC(endpointType EndpointType) (g *GoRPC) {
 //timeout -> timeout seconds of RPC call, if <=0 will ignore it
 func NewContext(md map[string]string, timeout int) context.Context {
 	var ctx = context.Background()
-	if timeout > 0 {
-		ctx, _ = context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	if timeout <= 0 {
+		timeout = DEFAULT_RPC_TIMEOUT
 	}
+	ctx, _ = context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 	return metadata.NewContext(ctx, md)
 }
 
