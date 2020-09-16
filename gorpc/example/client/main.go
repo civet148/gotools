@@ -23,12 +23,12 @@ func main() {
 	//c := NewClientWithConsul()
 	//c := NewClientWithZk()
 	service := echopb.NewEchoServerService(SERVICE_NAME, c)
-	ctx := gorpc.NewContext(map[string]string{
-		"X-User-Id": "lory",
-		"X-From-Id": "10086",
-	}, 5)
 
 	for i := 0; i < 10; i++ {
+		ctx := gorpc.NewContext(map[string]string{
+			"X-User-Id": "lory",
+			"X-From-Id": "10086",
+		}, 5)
 		log.Debugf("send request [%v]", i)
 		if pong, err := service.Call(ctx, &echopb.Ping{Text: "Ping"}); err != nil {
 			log.Error(err.Error())
