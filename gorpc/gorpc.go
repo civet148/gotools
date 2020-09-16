@@ -1,10 +1,12 @@
 package gorpc
 
 import (
+	"context"
 	"fmt"
 	"github.com/civet148/gotools/log"
 	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/etcd"
 	"github.com/micro/go-micro/registry/mdns"
@@ -59,6 +61,16 @@ func NewGoRPC(endpointType EndpointType) (g *GoRPC) {
 	return &GoRPC{
 		endpointType: endpointType,
 	}
+}
+
+//md -> metadata of RPC call, set to nil if have no any meta-data
+//timeout -> timeout seconds of RPC call, if <=0 will ignore it
+func NewContext(md map[string]string, timeout int) context.Context {
+	var ctx = context.Background()
+	if timeout > 0 {
+		ctx, _ = context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	}
+	return metadata.NewContext(ctx, md)
 }
 
 //new a go-micro client

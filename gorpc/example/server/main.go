@@ -93,5 +93,7 @@ func (s *EchoServerImpl) Call(ctx context.Context, ping *echopb.Ping, pong *echo
 	md, _ := metadata.FromContext(ctx)
 	log.Infof("md [%+v] req [%+v]", md, ping)
 	pong.Text = "Pong"
+	//log.Debugf("go routine will sleep few seconds (test timeout case)")
+	//time.Sleep(3*time.Second)
 	return
 }

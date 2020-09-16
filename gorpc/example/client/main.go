@@ -1,12 +1,10 @@
 package main
 
 import (
-	"context"
 	"github.com/civet148/gotools/gorpc"
 	"github.com/civet148/gotools/gorpc/example/echopb"
 	"github.com/civet148/gotools/log"
 	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/metadata"
 	"strings"
 	"time"
 )
@@ -25,12 +23,13 @@ func main() {
 	//c := NewClientWithConsul()
 	//c := NewClientWithZk()
 	service := echopb.NewEchoServerService(SERVICE_NAME, c)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
+	ctx := gorpc.NewContext(map[string]string{
 		"X-User-Id": "lory",
 		"X-From-Id": "10086",
-	})
-	for i := 0; i < 10; i++ {
+	}, 5)
 
+	for i := 0; i < 10; i++ {
+		log.Debugf("send request [%v]", i)
 		if pong, err := service.Call(ctx, &echopb.Ping{Text: "Ping"}); err != nil {
 			log.Error(err.Error())
 		} else {
