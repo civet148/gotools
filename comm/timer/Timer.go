@@ -98,7 +98,7 @@ func startTimer(inner *timerInner) {
 					inner.repeat-- //计数器减一
 				}
 				if inner.repeat == 0 {
-					return
+					KillTimer(inner.this, inner.id)
 				}
 			}
 		}
