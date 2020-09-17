@@ -23,11 +23,7 @@ type EchoServerImpl struct {
 
 func main() {
 	ch := make(chan bool, 1)
-	srv := NewServerWithMDNS()
-	//srv := NewServerWithEtcd()
-	//srv := NewServerWithConsul()
-	//srv := NewServerWithZK()
-
+	srv := NewGoMicroServer(gorpc.EndpointType_MDNS)
 	if err := echopb.RegisterEchoServerHandler(srv, new(EchoServerImpl)); err != nil {
 		log.Error(err.Error())
 		return
@@ -41,51 +37,27 @@ func main() {
 	<-ch //block infinite
 }
 
-func NewServerWithEtcd() (s server.Server) {
+func NewGoMicroServer(typ gorpc.EndpointType) (s server.Server) {
 	var g *gorpc.GoRPC
-	g = gorpc.NewGoRPC(gorpc.EndpointType_ETCD)
-	return g.NewServer(&gorpc.Discovery{
-		ServiceName: SERVICE_NAME,
-		RpcAddr:     RPC_ADDR,
-		Interval:    3,
-		TTL:         10,
-		Endpoints:   strings.Split(END_POINTS_HTTP_ETCD, ","),
-	})
-}
+	var endPoints []string
 
-func NewServerWithMDNS() (s server.Server) {
-	var g *gorpc.GoRPC
-	g = gorpc.NewGoRPC(gorpc.EndpointType_MDNS)
-	return g.NewServer(&gorpc.Discovery{
-		ServiceName: SERVICE_NAME,
-		RpcAddr:     RPC_ADDR,
-		Interval:    3,
-		TTL:         10,
-		Endpoints:   []string{},
-	})
-}
+	g = gorpc.NewGoRPC(typ)
+	switch typ {
+	case gorpc.EndpointType_MDNS:
+	case gorpc.EndpointType_ETCD:
+		endPoints = strings.Split(END_POINTS_HTTP_ETCD, ",")
+	case gorpc.EndpointType_CONSUL:
+		endPoints = strings.Split(END_POINTS_HTTP_CONSUL, ",")
+	case gorpc.EndpointType_ZOOKEEPER:
+		endPoints = strings.Split(END_POINTS_ZOOKEEPER, ",")
+	}
 
-func NewServerWithConsul() (s server.Server) {
-	var g *gorpc.GoRPC
-	g = gorpc.NewGoRPC(gorpc.EndpointType_CONSUL)
 	return g.NewServer(&gorpc.Discovery{
 		ServiceName: SERVICE_NAME,
 		RpcAddr:     RPC_ADDR,
 		Interval:    3,
 		TTL:         10,
-		Endpoints:   strings.Split(END_POINTS_HTTP_CONSUL, ","),
-	})
-}
-
-func NewServerWithZK() (s server.Server) {
-	var g *gorpc.GoRPC
-	g = gorpc.NewGoRPC(gorpc.EndpointType_ZOOKEEPER)
-	return g.NewServer(&gorpc.Discovery{
-		ServiceName: SERVICE_NAME,
-		RpcAddr:     RPC_ADDR,
-		Interval:    3,
-		TTL:         10,
-		Endpoints:   strings.Split(END_POINTS_ZOOKEEPER, ","),
+		Endpoints:   endPoints,
 	})
 }
 
@@ -94,6 +66,6 @@ func (s *EchoServerImpl) Call(ctx context.Context, ping *echopb.Ping, pong *echo
 	log.Infof("md [%+v] req [%+v]", md, ping)
 	pong.Text = "Pong"
 	//log.Debugf("go routine will sleep few seconds (test timeout case)")
-	//time.Sleep(3*time.Second)
+	//time.Sleep(30*time.Second)
 	return
 }
