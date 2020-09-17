@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/civet148/gotools/gorpc"
 	"github.com/civet148/gotools/gorpc/example/echopb"
 	"github.com/civet148/gotools/log"
@@ -18,16 +19,13 @@ const (
 
 func main() {
 
-	c := NewClientWithMDNS()
-	//c := NewClientWithEtcd()
-	//c := NewClientWithConsul()
-	//c := NewClientWithZk()
+	c := NewGoMicroClient(gorpc.EndpointType_MDNS)
 	service := echopb.NewEchoServerService(SERVICE_NAME, c)
 
 	for i := 0; i < 10; i++ {
 		ctx := gorpc.NewContext(map[string]string{
 			"X-User-Id": "lory",
-			"X-From-Id": "10086",
+			"X-From-Id": fmt.Sprintf("%d", 10000+i),
 		}, 5)
 		log.Debugf("send request [%v]", i)
 		if pong, err := service.Call(ctx, &echopb.Ping{Text: "Ping"}); err != nil {
@@ -39,29 +37,18 @@ func main() {
 	}
 }
 
-func NewClientWithEtcd() (c client.Client) {
+func NewGoMicroClient(typ gorpc.EndpointType) (c client.Client) {
 	var g *gorpc.GoRPC
-	g = gorpc.NewGoRPC(gorpc.EndpointType_ETCD)
-	endPoints := strings.Split(END_POINTS_HTTP_ETCD, ",")
-	return g.NewClient(endPoints...)
-}
-
-func NewClientWithMDNS() (c client.Client) {
-	var g *gorpc.GoRPC
-	g = gorpc.NewGoRPC(gorpc.EndpointType_MDNS)
-	return g.NewClient()
-}
-
-func NewClientWithConsul() (c client.Client) {
-	var g *gorpc.GoRPC
-	g = gorpc.NewGoRPC(gorpc.EndpointType_CONSUL)
-	endPoints := strings.Split(END_POINTS_HTTP_CONSUL, ",")
-	return g.NewClient(endPoints...)
-}
-
-func NewClientWithZk() (c client.Client) {
-	var g *gorpc.GoRPC
-	g = gorpc.NewGoRPC(gorpc.EndpointType_ZOOKEEPER)
-	endPoints := strings.Split(END_POINTS_ZOOKEEPER, ",")
+	var endPoints []string
+	g = gorpc.NewGoRPC(typ)
+	switch typ {
+	case gorpc.EndpointType_MDNS:
+	case gorpc.EndpointType_ETCD:
+		endPoints = strings.Split(END_POINTS_HTTP_ETCD, ",")
+	case gorpc.EndpointType_CONSUL:
+		endPoints = strings.Split(END_POINTS_HTTP_CONSUL, ",")
+	case gorpc.EndpointType_ZOOKEEPER:
+		endPoints = strings.Split(END_POINTS_ZOOKEEPER, ",")
+	}
 	return g.NewClient(endPoints...)
 }
