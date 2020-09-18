@@ -24,8 +24,8 @@ func main() {
 
 	for i := 0; i < 10; i++ {
 		ctx := gorpc.NewContext(map[string]string{
-			"X-User-Id": "lory",
-			"X-From-Id": fmt.Sprintf("%d", 10000+i),
+			"User_Name": "lory",
+			"User_Id":   fmt.Sprintf("%d", 10000+i),
 		}, 5)
 		log.Debugf("send request [%v]", i)
 		if pong, err := service.Call(ctx, &echopb.Ping{Text: "Ping"}); err != nil {

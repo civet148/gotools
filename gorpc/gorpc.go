@@ -14,6 +14,7 @@ import (
 	"github.com/micro/go-micro/service/grpc"
 	"github.com/micro/go-plugins/registry/consul"
 	"github.com/micro/go-plugins/registry/zookeeper"
+	"strings"
 	"time"
 )
 
@@ -73,6 +74,20 @@ func NewContext(md map[string]string, timeout int) context.Context {
 	}
 	ctx, _ = context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 	return metadata.NewContext(ctx, md)
+}
+
+func FromContext(ctx context.Context) (md metadata.Metadata) {
+	md, _ = metadata.FromContext(ctx)
+	return
+}
+
+func GetMetadata(ctx context.Context, key string) (value string) {
+	key = strings.TrimSpace(key)
+	key = strings.ToLower(key)
+	if md, ok := metadata.FromContext(ctx); ok {
+		value = md[key]
+	}
+	return
 }
 
 //new a go-micro client
