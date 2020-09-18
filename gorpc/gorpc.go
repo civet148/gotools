@@ -76,11 +76,13 @@ func NewContext(md map[string]string, timeout int) context.Context {
 	return metadata.NewContext(ctx, md)
 }
 
+//get metadata from context
 func FromContext(ctx context.Context) (md metadata.Metadata) {
 	md, _ = metadata.FromContext(ctx)
 	return
 }
 
+//get metadata value from context
 func GetMetadata(ctx context.Context, key string) (value string) {
 	key = strings.TrimSpace(key)
 	key = strings.ToLower(key)
