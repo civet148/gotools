@@ -5,7 +5,6 @@ import (
 	"github.com/civet148/gotools/gorpc"
 	"github.com/civet148/gotools/gorpc/example/echopb"
 	"github.com/civet148/gotools/log"
-	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/server"
 	"strings"
 )
@@ -62,8 +61,8 @@ func NewGoMicroServer(typ gorpc.EndpointType) (s server.Server) {
 }
 
 func (s *EchoServerImpl) Call(ctx context.Context, ping *echopb.Ping, pong *echopb.Pong) (err error) {
-	md, _ := metadata.FromContext(ctx)
-	log.Infof("md [%+v] req [%+v]", md, ping)
+	md := gorpc.FromContext(ctx)
+	log.Infof("md [%+v] req [%+v] user_id=%s", md, ping, gorpc.GetMetadata(ctx, "user_id"))
 	pong.Text = "Pong"
 	//log.Debugf("go routine will sleep few seconds (test timeout case)")
 	//time.Sleep(30*time.Second)
