@@ -3,6 +3,8 @@ package log
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
+
 	//"github.com/mattn/go-colorable"
 	"io/ioutil"
 	"log"
@@ -48,6 +50,7 @@ type LogUrl struct {
 	Scheme   string //协议名
 	User     string //用户名
 	Password string //密码
+	locker   sync.RWMutex
 }
 
 type Option struct {
@@ -249,7 +252,8 @@ func (lu *LogUrl) createFile() bool {
 	if strings.Index(option.filePath, ".") == -1 {
 		panic("log file path illegal, must contain dot suffix [日志文件必须带.后缀名]")
 	}
-
+	lu.locker.Lock()
+	defer lu.locker.Unlock()
 	logFile, err = os.OpenFile(option.filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
 		Error("Open log file ", option.filePath, " failed ", err)
@@ -411,6 +415,8 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 					logUrl.createFile() //重新创建文件
 				}
 			}
+		} else {
+			logUrl.createFile() //重新创建文件
 		}
 
 		logger.Println(Name + " " + strRoutine + " " + code + " " + inf)
