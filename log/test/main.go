@@ -84,7 +84,7 @@ func main() {
 
 	log.Open(strUrl, log.Option{
 		LogLevel:     log.LEVEL_DEBUG,
-		FileSize:     1, //MB
+		FileSize:     100, //MB
 		MaxBackups:   10,
 		CloseConsole: false,
 	})
@@ -105,8 +105,8 @@ func main() {
 	for i := 0; i < 100; i++ {
 
 		wg.Add(1)
-		go PrintFuncExecuteTime(i, wg)
-		//PrintFuncExecuteTime(i, wg)
+		PrintFuncExecuteTime(i, wg)
+		time.Sleep(5 * time.Millisecond)
 	}
 
 	wg.Wait()
@@ -146,7 +146,7 @@ func PrintFuncExecuteTime(i int, wg *sync.WaitGroup) {
 	st2 := &testSt{MyInt: 2, MyFloat64: 4.00, abc: 9999}
 	log.Json(st1, st2)
 	log.Struct(st1, st2)
-	log.Debugf("%v", log.JsonDebugString(st1))
+	log.Debugf("[%d] %v", i, log.JsonDebugString(st1))
 	elapse := time.Now().Unix() - beg
 	atomic.AddInt64(&totalSeconds, elapse)
 	wg.Done()
