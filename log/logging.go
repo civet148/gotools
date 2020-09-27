@@ -3,9 +3,7 @@ package log
 import (
 	"encoding/json"
 	"fmt"
-	"sync"
-
-	//"github.com/mattn/go-colorable"
+	"github.com/mattn/go-colorable"
 	"io/ioutil"
 	"log"
 	"net/url"
@@ -15,8 +13,11 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
+
+var colorStdout = colorable.NewColorableStdout()
 
 var LevelName = []string{"[DEBUG]", "[INFO]", "[WARN]", "[ERROR]", "[FATAL]"}
 
@@ -385,15 +386,15 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 	var output string
 
 	switch runtime.GOOS {
-	case "windows": //Windows终端不再支持颜色显示
-		output = strTimeFmt + " " + Name + " " + strRoutine + " " + code + " " + inf
+	//case "windows": //Windows终端不再支持颜色显示
+	//output = strTimeFmt + " " + Name + " " + strRoutine + " " + code + " " + inf
 	default: //Unix类终端支持颜色显示
 		output = "\033[1m" + colorTimeName + " " + strRoutine + " " + code + "\033[0m " + inf
 	}
 
 	//打印到终端屏幕
 	if !option.CloseConsole {
-		_, _ = fmt.Fprintln(os.Stdout, output)
+		_, _ = fmt.Fprintln(colorStdout /*os.Stdout*/, output)
 	}
 
 	//输出到文件（如果Open函数传入了正确的文件路径）
