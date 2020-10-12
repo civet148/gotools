@@ -84,14 +84,15 @@ func KillTimer(this interface{}, id int) {
 }
 
 func startTimer(inner *timerInner) {
-	//log.Debugf("start timer inner id [%+v]", inner.id)
+
+	ticker := time.NewTicker(time.Duration(inner.elapse) * time.Millisecond)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-inner.closing:
 			return
-		case <-time.After(time.Duration(inner.elapse) * time.Millisecond):
+		case <-ticker.C:
 			{
-				//log.Debugf("timer inner [%+v]", inner)
 				cb := inner.this.(ITimer)
 				cb.OnTimer(inner.id, inner.param) //调用OnTimer方法执行定时任务
 				if inner.repeat != RepeatForever && inner.repeat != RepeatDone {
