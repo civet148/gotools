@@ -250,9 +250,9 @@ func (lu *LogUrl) createFile() bool {
 	var err error
 
 	//判断日志文件后缀名合法性
-	if strings.Index(option.filePath, ".") == -1 {
-		panic("log file path illegal, must contain dot suffix [日志文件必须带.后缀名]")
-	}
+	//if strings.Index(option.filePath, ".") == -1 {
+	//	panic("log file path illegal, must contain dot suffix [日志文件必须带.后缀名]")
+	//}
 	lu.locker.Lock()
 	defer lu.locker.Unlock()
 	logFile, err = os.OpenFile(option.filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
