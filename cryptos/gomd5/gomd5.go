@@ -27,3 +27,7 @@ func Md5Sum(data []byte) string {
 	md5Hash.Write(data)
 	return fmt.Sprintf("%x", md5Hash.Sum(nil))
 }
+
+func Md5String(data string) string {
+	return Md5Sum([]byte(data))
+}
