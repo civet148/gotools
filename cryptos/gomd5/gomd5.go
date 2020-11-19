@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 )
 
 func Md5File(strFileName string) string {
@@ -28,6 +29,14 @@ func Md5Sum(data []byte) string {
 	return fmt.Sprintf("%x", md5Hash.Sum(nil))
 }
 
+func Md5SumUpper(data []byte) string {
+	return strings.ToUpper(Md5Sum(data))
+}
+
 func Md5String(data string) string {
 	return Md5Sum([]byte(data))
+}
+
+func Md5StringUpper(data string) string {
+	return strings.ToUpper(Md5String(data))
 }
