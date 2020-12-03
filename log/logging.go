@@ -355,20 +355,21 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 
 	strTimeFmt := fmt.Sprintf("%v", time.Now().Format("2006-01-02 15:04:05.000000"))
 	strRoutine := fmt.Sprintf("{%v}", getRoutineId())
+	strPID := fmt.Sprintf("PID:%d", os.Getpid())
 	Name := LevelName[level]
 	switch level {
 	case LEVEL_DEBUG:
-		colorTimeName = fmt.Sprintf("\033[34m%v %s", strTimeFmt, Name)
+		colorTimeName = fmt.Sprintf("\033[34m%v %s %s", strTimeFmt, strPID, Name)
 	case LEVEL_INFO:
-		colorTimeName = fmt.Sprintf("\033[32m%v %s", strTimeFmt, Name)
+		colorTimeName = fmt.Sprintf("\033[32m%v %s %s", strTimeFmt, strPID, Name)
 	case LEVEL_WARN:
-		colorTimeName = fmt.Sprintf("\033[33m%v %s", strTimeFmt, Name)
+		colorTimeName = fmt.Sprintf("\033[33m%v %s %s", strTimeFmt, strPID, Name)
 	case LEVEL_ERROR:
-		colorTimeName = fmt.Sprintf("\033[31m%v %s", strTimeFmt, Name)
+		colorTimeName = fmt.Sprintf("\033[31m%v %s %s", strTimeFmt, strPID, Name)
 	case LEVEL_FATAL:
-		colorTimeName = fmt.Sprintf("\033[35m%v %s", strTimeFmt, Name)
+		colorTimeName = fmt.Sprintf("\033[35m%v %s %s", strTimeFmt, strPID, Name)
 	default:
-		colorTimeName = fmt.Sprintf("\033[34m%v %s", strTimeFmt, Name)
+		colorTimeName = fmt.Sprintf("\033[34m%v %s %s", strTimeFmt, strPID, Name)
 	}
 
 	if fmtstr != "" {
