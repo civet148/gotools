@@ -137,8 +137,9 @@ func createSocket(url string) (s Socket) {
 		s = newSocket(SocketType_UNIX, ui)
 	default:
 		{
-			log.Errorf("unknown scheme [%v] in url [%v]", ui.Scheme, url)
-			panic("unknown scheme, url illegal")
+			url = URL_SCHEME_TCP + parser.URL_SCHEME_SEP + url
+			ui = parser.ParseUrl(url)
+			s = newSocket(SocketType_TCP, ui) //default 'tcp'
 		}
 	}
 	return
