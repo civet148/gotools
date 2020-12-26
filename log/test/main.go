@@ -102,7 +102,7 @@ func main() {
 	//log.Panic("this function will call panic")
 
 	wg := &sync.WaitGroup{}
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 1; i++ {
 
 		wg.Add(1)
 		PrintFuncExecuteTime(i, wg)
@@ -150,4 +150,5 @@ func PrintFuncExecuteTime(i int, wg *sync.WaitGroup) {
 	elapse := time.Now().Unix() - beg
 	atomic.AddInt64(&totalSeconds, elapse)
 	wg.Done()
+	//log.Errorf("done")
 }

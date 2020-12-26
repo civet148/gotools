@@ -348,6 +348,20 @@ func getCaller(skip int) (strFile, strFunc string, nLineNo int) {
 	return
 }
 
+func getStack(skip, n int) string {
+	var strStack string
+	for i := 0; i < n; i++ {
+		pc, file, line, ok := runtime.Caller(skip + i)
+		if ok {
+			strFile := path.Base(file)
+			nLineNo := line
+			strFunc := getFuncName(pc)
+			strStack += fmt.Sprintf("|- %s:%d %s() \n", strFile, nLineNo, strFunc)
+		}
+	}
+	return strStack
+}
+
 //内部格式化输出函数
 func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc string, nLineNo int) {
 	var inf, code string
@@ -393,6 +407,9 @@ func output(level int, fmtstr string, args ...interface{}) (strFile, strFunc str
 		output = "\033[1m" + colorTimeName + " " + strRoutine + " " + code + "\033[0m " + inf
 	}
 
+	if level >= LEVEL_ERROR {
+		output += fmt.Sprintf("\n" + "call stack \n" + getStack(3, 10))
+	}
 	//打印到终端屏幕
 	if !option.CloseConsole {
 		_, _ = fmt.Fprintln(colorStdout /*os.Stdout*/, output)
