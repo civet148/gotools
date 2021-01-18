@@ -1,7 +1,7 @@
 package process
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"runtime"
 	"syscall"
@@ -44,7 +44,7 @@ func Daemon() (code int) {
 	// create a new SID for the child process
 	sidRet, sidErrNo := syscall.Setsid()
 	if sidErrNo != nil {
-		log.Printf("Error: syscall.Setsid errno: %d\n", sidErrNo)
+		fmt.Printf("Error: syscall.Setsid errno: %d\n", sidErrNo)
 	}
 	if sidRet < 0 {
 		return -1
