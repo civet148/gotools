@@ -8,7 +8,7 @@ require (
 	github.com/eclipse/paho.mqtt.golang v1.2.0
 	github.com/garyburd/redigo v1.6.0
 	github.com/gin-gonic/gin v1.5.0
-	github.com/golang/protobuf v1.4.0
+	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/websocket v1.4.1
 	github.com/mattn/go-colorable v0.1.7
 	github.com/micro/go-micro v1.18.0
@@ -20,6 +20,8 @@ require (
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	github.com/zheng-ji/goSnowFlake v0.0.0-20180906112711-fc763800eec9
 	go.etcd.io/etcd v3.3.18+incompatible
-	golang.org/x/crypto v0.0.0-20191108234033-bd318be0434a
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
+
+replace github.com/micro/go-micro => github.com/Lofanmi/go-micro v1.16.1-0.20210804063523-68bbf601cfa4
