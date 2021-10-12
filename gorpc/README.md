@@ -4,7 +4,7 @@
 $ wget https://github.com/protocolbuffers/protobuf/releases/download/v3.13.0/protobuf-cpp-3.13.0.tar.gz
 $ tar xvfz protobuf-cpp-3.13.0.tar.gz
 $ cd protobuf-cpp-3.13.0
-$ make && make install
+$ ./configure && make && make install
 ```
 2. 安装go插件 protoc-gen-go
 
