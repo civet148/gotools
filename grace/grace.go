@@ -20,18 +20,27 @@ func GracefullyExit(callback func(signal os.Signal) bool, signals ...os.Signal) 
 		for {
 			select {
 			case s := <-sig:
-				{
-					if s != nil {
-						fmt.Printf("capture signal [%+v]\n", s)
+				if s != nil {
+					fmt.Printf("capture signal [%v]\n", s.String())
+					if callback == nil {
+						if s == os.Interrupt {
+							fmt.Printf("callback is nil and signal is %s, program exit...\n", s.String())
+							exit0(sig)
+						}
+					} else {
 						if !callback(s) {
-							fmt.Printf("callback return false, program exitting...\n")
-							time.Sleep(300 * time.Millisecond)
-							close(sig)
-							os.Exit(0)
+							fmt.Printf("callback return false, program exit...\n")
+							exit0(sig)
 						}
 					}
 				}
 			}
 		}
 	}()
+}
+
+func exit0(sig chan os.Signal) {
+	time.Sleep(300 * time.Millisecond)
+	close(sig)
+	os.Exit(0)
 }
