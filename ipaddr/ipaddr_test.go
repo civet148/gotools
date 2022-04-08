@@ -11,9 +11,17 @@ func TestParseIP(t *testing.T) {
 	for _, v := range list {
 		fmt.Printf("ip %s \n", v)
 	}
-	fmt.Printf("total [%d] ip address", len(list))
+	fmt.Printf("PARSE total [%d] ip address\n\n", len(list))
 }
 
 func TestParseFile(t *testing.T) {
 
+}
+
+func TestHostIPv4(t *testing.T) {
+	list, _ := HostIPv4()
+	for _, v := range list {
+		fmt.Printf("ip %s \n", v)
+	}
+	fmt.Printf("HOST total [%d] ip address\n\n", len(list))
 }

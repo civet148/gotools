@@ -15,6 +15,28 @@ import (
 var ErrorParse = errors.New("host or ip parsing error")
 var ErrorFile = errors.New("filename is nil")
 
+//exclude net id list
+var netids = []string{"/8", "/16", "/64", "128"}
+
+func HostIPv4() (ips []string, err error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, addr := range addrs {
+		if !exclude(addr.String(), netids) {
+			var ip = addr.String()
+			i := strings.Index(ip, "/")
+			if i > 0 {
+				ip = ip[:i]
+			}
+			ips = append(ips, ip)
+		}
+	}
+	return ips, nil
+}
+
 func ParseFile(strFilename string) (hosts []string, err error) {
 
 	if strFilename == "" {
@@ -53,6 +75,15 @@ func ParseIP(ip string) (hosts []string) {
 		hosts = parseIP(ip)
 	}
 	return hosts
+}
+
+func exclude(a string, ss []string) bool {
+	for _, id := range ss {
+		if strings.Contains(a, id) {
+			return true
+		}
+	}
+	return false
 }
 
 func parseIP(ip string) []string {
