@@ -37,6 +37,21 @@ func HostIPv4() (ips []string, err error) {
 	return ips, nil
 }
 
+func NetIPv4() (ips []string, err error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, addr := range addrs {
+		if !exclude(addr.String(), netids) {
+			var ip = addr.String()
+			ips = append(ips, ip)
+		}
+	}
+	return ips, nil
+}
+
 func ParseFile(strFilename string) (hosts []string, err error) {
 
 	if strFilename == "" {

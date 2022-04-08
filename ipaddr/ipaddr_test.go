@@ -25,3 +25,11 @@ func TestHostIPv4(t *testing.T) {
 	}
 	fmt.Printf("HOST total [%d] ip address\n\n", len(list))
 }
+
+func TestNetIPv4(t *testing.T) {
+	list, _ := NetIPv4()
+	for _, v := range list {
+		fmt.Printf("ip %s \n", v)
+	}
+	fmt.Printf("NET total [%d] ip address\n\n", len(list))
+}
