@@ -4,7 +4,9 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"
+	"encoding/hex"
 	"github.com/civet148/gotools/cryptos/goaes"
+	"strings"
 )
 
 type CryptoAES_ECB struct {
@@ -92,4 +94,27 @@ func (c *CryptoAES_ECB) DecryptBase64(in string) (out []byte, err error) {
 //获取当前AES模式
 func (c *CryptoAES_ECB) GetMode() goaes.AES_Mode {
 	return goaes.AES_Mode_ECB
+}
+
+//加密后将密文做HEX编码字符串
+func (c *CryptoAES_ECB) EncryptHex(in []byte) (out string, err error) {
+	var enc []byte
+	if enc, err = c.Encrypt(in); err != nil {
+		return
+	}
+	out = hex.EncodeToString(enc)
+	return
+}
+
+//HEX编码字符串的密文后返回二进制切片
+func (c *CryptoAES_ECB) DecryptHex(in string) (out []byte, err error) {
+	var data []byte
+	in = strings.ToLower(in)
+	if strings.HasPrefix(in, "0x") {
+		in = strings.TrimPrefix(in, "0x")
+	}
+	if data, err = hex.DecodeString(in); err != nil {
+		return
+	}
+	return c.Decrypt(data)
 }

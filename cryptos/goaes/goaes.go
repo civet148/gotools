@@ -42,10 +42,14 @@ type CryptoAES interface {
 	Encrypt([]byte) ([]byte, error)
 	//加密后将密文做BASE64编码字符串
 	EncryptBase64([]byte) (string, error)
+	//加密后将密文做HEX编码字符串
+	EncryptHex([]byte) (string, error)
 	//解密后返回二进制字节数据切片
 	Decrypt([]byte) ([]byte, error)
 	//解密BASE64编码字符串的密文后返回二进制切片
 	DecryptBase64(string) ([]byte, error)
+	//HEX编码字符串的密文后返回二进制切片
+	DecryptHex(string) ([]byte, error)
 }
 
 type instance func(key, iv []byte) CryptoAES
